@@ -148,12 +148,6 @@
             gap: 12px;
         }
         .points-breakdown span { color: white; }
-        .calibration-note {
-            text-align: center;
-            font-size: 0.7rem;
-            color: #8b6c3c;
-            margin-top: 10px;
-        }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
@@ -192,7 +186,6 @@
         <div>🔍 201-300km: <span>40 pts</span></div>
         <div>❌ 300km+: <span>0 pts</span></div>
     </div>
-    <div class="calibration-note">⚙️ Calibrated for this map: North=40.8°</div>
 </div>
 
 <script>
@@ -205,12 +198,11 @@
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // SIGNIFICANTLY LOWERED northern bound to bring coastal cities onto land
-    // Rize and Trabzon are at ~41.0°N, so north bound must be lower than that
-    const TURKEY_NORTH = 40.8;    // Lowered significantly for your map
-    const TURKEY_SOUTH = 35.8;
-    const TURKEY_WEST = 25.8;
-    const TURKEY_EAST = 44.5;
+    // CORRECT Turkey geographic bounds from Wikipedia Location Map module
+    const TURKEY_NORTH = 42.5;
+    const TURKEY_SOUTH = 35.5;
+    const TURKEY_WEST = 25.4;
+    const TURKEY_EAST = 45.0;
     
     const CANVAS_WIDTH = 1024;
     const CANVAS_HEIGHT = 500;
@@ -238,7 +230,7 @@
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
     
-    // All 81 Turkish provinces with accurate coordinates
+    // ACCURATE coordinates for all 81 provinces from official geographic data
     const allCities = [
         { name: "Adana", lat: 36.9919, lon: 35.3308 },
         { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
@@ -279,18 +271,18 @@
         { name: "Hatay", lat: 36.4018, lon: 36.3498 },
         { name: "Iğdır", lat: 39.9200, lon: 44.0440 },
         { name: "Isparta", lat: 37.7644, lon: 30.5564 },
-        { name: "Istanbul", lat: 41.0082, lon: 28.9784 },
-        { name: "Izmir", lat: 38.4189, lon: 27.1287 },
+        { name: "İstanbul", lat: 41.0082, lon: 28.9784 },
+        { name: "İzmir", lat: 38.4189, lon: 27.1287 },
         { name: "Kahramanmaraş", lat: 37.5875, lon: 36.9317 },
         { name: "Karabük", lat: 41.2061, lon: 32.6194 },
         { name: "Karaman", lat: 37.1811, lon: 33.2150 },
         { name: "Kars", lat: 40.6017, lon: 43.0975 },
         { name: "Kastamonu", lat: 41.3887, lon: 33.7825 },
         { name: "Kayseri", lat: 38.7239, lon: 35.4801 },
-        { name: "Kilis", lat: 36.7167, lon: 37.1167 },
         { name: "Kırıkkale", lat: 39.8468, lon: 33.5153 },
         { name: "Kırklareli", lat: 41.7358, lon: 27.2252 },
         { name: "Kırşehir", lat: 39.1464, lon: 34.1597 },
+        { name: "Kilis", lat: 36.7167, lon: 37.1167 },
         { name: "Kocaeli", lat: 40.7655, lon: 29.9408 },
         { name: "Konya", lat: 37.8704, lon: 32.5110 },
         { name: "Kütahya", lat: 39.4217, lon: 29.9879 },
@@ -317,7 +309,7 @@
         { name: "Trabzon", lat: 41.0061, lon: 39.7191 },
         { name: "Tunceli", lat: 39.1075, lon: 39.5489 },
         { name: "Uşak", lat: 38.6775, lon: 29.4058 },
-        { name: "Van", lat: 38.6658, lon: 44.1492 },
+        { name: "Van", lat: 38.5012, lon: 43.3730 },
         { name: "Yalova", lat: 40.6550, lon: 29.2775 },
         { name: "Yozgat", lat: 39.8200, lon: 34.8094 },
         { name: "Zonguldak", lat: 41.4564, lon: 31.7975 }
