@@ -279,6 +279,7 @@
     let canClick = true;
     let mapLoaded = false;
     let gameActive = true;
+    let nextQuestionTimeout = null;
     
     function shuffleArray(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
@@ -289,7 +290,6 @@
     }
     
     function selectRandomCities() {
-        // Pick 5 random different cities from the 81
         const shuffled = shuffleArray([...cities]);
         return shuffled.slice(0, 5);
     }
@@ -324,7 +324,6 @@
     };
     
     function calculatePoints(distanceKm) {
-        // Max 200 points per question, out of 1000 total
         if (distanceKm < 20) return 200;
         if (distanceKm < 50) return 180;
         if (distanceKm < 80) return 150;
@@ -357,7 +356,6 @@
         document.getElementById('feedback').innerHTML = "";
         document.getElementById('progress').innerHTML = `Game finished! Click "PLAY AGAIN" to start a new round`;
         
-        // Show final score in a special div
         let finalDiv = document.getElementById('finalScore');
         if (!finalDiv) {
             finalDiv = document.createElement('div');
@@ -426,14 +424,20 @@
         
         canClick = false;
         
+        // Clear any existing timeout
+        if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+        
         // Move to next question after 2 seconds
-        setTimeout(() => {
+        nextQuestionTimeout = setTimeout(() => {
             currentQuestionIndex++;
             loadNextQuestion();
         }, 2000);
     }
     
     function resetGame() {
+        // Clear timeout if exists
+        if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+        
         gameActive = true;
         totalScore = 0;
         currentQuestionIndex = 0;
