@@ -73,9 +73,9 @@
             margin: 10px 0;
             font-weight: bold;
         }
-        /* Lighter background colors for better readability */
+        /* ALL LIGHT BACKGROUNDS - NO DARK GRAY */
         .message-info {
-            background: #d4c9a8;
+            background: #e8e0c8;
             color: #2c2b28;
             border: 2px solid #c9b27c;
         }
@@ -84,6 +84,12 @@
         .close { background: #ffe0b3; color: #5c3a1a; border: 2px solid #c9a13b; }
         .far { background: #ffcc99; color: #5c3a1a; border: 2px solid #b87a2a; }
         .miss { background: #ffb3b3; color: #8b0000; border: 2px solid #cc0000; }
+        .game-complete {
+            background: #a5d6a5;
+            color: #1a472a;
+            border: 3px solid #2f6b3c;
+            font-size: 1.3rem;
+        }
         .feedback {
             font-size: 0.9rem;
             margin-top: 8px;
@@ -370,11 +376,12 @@
     function endGame() {
         gameActive = false;
         const messageDiv = document.getElementById('message');
-        messageDiv.className = "message message-info";
-        messageDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>Final Score: ${totalScore} / 1000`;
+        // Use light green background for game complete - NO DARK GRAY!
+        messageDiv.className = "message game-complete";
+        messageDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
         
         document.getElementById('feedback').innerHTML = "";
-        document.getElementById('progress').innerHTML = `Game finished! Click "PLAY AGAIN" to start a new round`;
+        document.getElementById('progress').innerHTML = `🏁 Game finished! Click "PLAY AGAIN" for a new round 🏁`;
         
         let finalDiv = document.getElementById('finalScore');
         if (!finalDiv) {
@@ -395,7 +402,7 @@
         hasAnsweredCurrent = false;
         currentCity = currentRound[currentQuestionIndex];
         document.getElementById('targetCity').innerText = currentCity.name;
-        document.getElementById('progress').innerHTML = `Question ${currentQuestionIndex + 1} of ${currentRound.length}`;
+        document.getElementById('progress').innerHTML = `📍 Question ${currentQuestionIndex + 1} of ${currentRound.length}`;
         const msgDiv = document.getElementById('message');
         msgDiv.className = "message message-info";
         msgDiv.innerHTML = "📍 CLICK ON THE MAP where you think the city is located";
