@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey MapTap - 81 Cities Challenge</title>
+    <title>Turkey MapTap - Calibrated Edition</title>
     <style>
         * { user-select: none; box-sizing: border-box; }
         body {
@@ -74,22 +74,13 @@
             margin: 10px 0;
             font-weight: bold;
         }
-        .message-info {
-            background: #e8e0c8;
-            color: #2c2b28;
-            border: 2px solid #c9b27c;
-        }
+        .message-info { background: #e8e0c8; color: #2c2b28; border: 2px solid #c9b27c; }
         .perfect { background: #a5d6a5; color: #1a472a; border: 2px solid #2f6b3c; }
         .good { background: #c8e6c8; color: #1a472a; border: 2px solid #4a8c3a; }
         .close { background: #ffe0b3; color: #5c3a1a; border: 2px solid #c9a13b; }
         .far { background: #ffcc99; color: #5c3a1a; border: 2px solid #b87a2a; }
         .miss { background: #ffb3b3; color: #8b0000; border: 2px solid #cc0000; }
-        .game-complete {
-            background: #a5d6a5;
-            color: #1a472a;
-            border: 3px solid #2f6b3c;
-            font-size: 1.3rem;
-        }
+        .game-complete { background: #a5d6a5; color: #1a472a; border: 3px solid #2f6b3c; font-size: 1.3rem; }
         .feedback {
             font-size: 0.9rem;
             margin-top: 8px;
@@ -136,14 +127,8 @@
             min-width: 150px;
         }
         button:active { transform: scale(0.97); }
-        #nextBtn {
-            background: #2f6b3c;
-            color: white;
-        }
-        #resetBtn {
-            background: #8b6c3c;
-            color: white;
-        }
+        #nextBtn { background: #2f6b3c; color: white; }
+        #resetBtn { background: #8b6c3c; color: white; }
         .points-breakdown {
             background: #2c2b28;
             border-radius: 20px;
@@ -205,11 +190,15 @@
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // CORRECT Turkey geographic bounds from Wikipedia Location Map module
-    const TURKEY_NORTH = 42.5;
-    const TURKEY_SOUTH = 35.5;
-    const TURKEY_WEST = 25.4;
-    const TURKEY_EAST = 45.0;
+    // CALIBRATED bounds using multiple reference points:
+    // - Sinop (42.02°N) should be at top edge
+    // - Hatay (36.40°N) should be at bottom edge
+    // - Edirne (26.56°E) should be at left edge
+    // - Van (44.15°E) should be at right edge
+    const TURKEY_NORTH = 42.1;
+    const TURKEY_SOUTH = 35.8;
+    const TURKEY_WEST = 25.8;
+    const TURKEY_EAST = 44.5;
     
     const CANVAS_WIDTH = 1024;
     const CANVAS_HEIGHT = 500;
@@ -237,7 +226,7 @@
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
     
-    // ACCURATE city coordinates from official sources
+    // Accurate city coordinates from official sources
     const allCities = [
         { name: "Adana", lat: 36.9919, lon: 35.3308 },
         { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
@@ -471,8 +460,6 @@
         document.getElementById('feedback').innerHTML = "";
         drawMap();
         canClick = true;
-        
-        // Make sure NEXT CITY button is visible
         document.getElementById('nextBtn').style.display = "block";
     }
     
