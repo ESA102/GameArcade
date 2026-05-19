@@ -1,60 +1,80 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>TEST - Show Green Dot</title>
+    <title>Turkey Map - Test</title>
     <style>
         body { background: #1a472a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        canvas { border: 5px solid white; background: #c9b27c; cursor: crosshair; }
+        canvas { border: 5px solid white; cursor: crosshair; }
     </style>
 </head>
 <body>
-<canvas id="myCanvas" width="800" height="500"></canvas>
+<canvas id="turkeyCanvas" width="1024" height="500"></canvas>
 
 <script>
-    const canvas = document.getElementById('myCanvas');
+    const canvas = document.getElementById('turkeyCanvas');
     const ctx = canvas.getContext('2d');
     
-    // Draw a simple map (gray shape)
-    ctx.fillStyle = "#c9b27c";
-    ctx.fillRect(0, 0, 800, 500);
+    const mapImage = new Image();
+    mapImage.src = 'turkey-map.png';
     
-    // Draw a red dot at position 400, 250 (center)
-    ctx.beginPath();
-    ctx.arc(400, 250, 15, 0, Math.PI * 2);
-    ctx.fillStyle = "red";
-    ctx.fill();
-    ctx.fillStyle = "white";
-    ctx.font = "bold 16px Arial";
-    ctx.fillText("CORRECT LOCATION (RED DOT)", 400, 220);
+    // HARDCODED correct location for ISTANBUL (pixel coordinates)
+    const CORRECT_X = 340;
+    const CORRECT_Y = 165;
     
-    // When you click ANYWHERE, a GREEN dot appears at the SAME red dot location
+    mapImage.onload = function() {
+        ctx.drawImage(mapImage, 0, 0, 1024, 500);
+    };
+    
+    mapImage.onerror = function() {
+        ctx.fillStyle = "#c9b27c";
+        ctx.fillRect(0, 0, 1024, 500);
+        ctx.fillStyle = "black";
+        ctx.fillText("Map not found, but green dot will still appear at X=340, Y=165", 50, 50);
+    };
+    
     canvas.addEventListener('click', function(e) {
         const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        const clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const clickY = (e.clientY - rect.top) * (canvas.height / rect.height);
         
-        // Draw a green circle at the CORRECT location (400, 250)
+        // Redraw map
+        if (mapImage.complete && mapImage.naturalWidth > 0) {
+            ctx.drawImage(mapImage, 0, 0, 1024, 500);
+        } else {
+            ctx.fillStyle = "#c9b27c";
+            ctx.fillRect(0, 0, 1024, 500);
+        }
+        
+        // Draw YOUR click (WHITE)
         ctx.beginPath();
-        ctx.arc(400, 250, 20, 0, Math.PI * 2);
+        ctx.arc(clickX, clickY, 14, 0, Math.PI * 2);
+        ctx.fillStyle = "white";
+        ctx.fill();
+        ctx.fillStyle = "black";
+        ctx.font = "bold 12px Arial";
+        ctx.fillText("YOU CLICKED HERE", clickX + 10, clickY - 5);
+        
+        // Draw CORRECT location (GREEN) - HARDCODED
+        ctx.beginPath();
+        ctx.arc(CORRECT_X, CORRECT_Y, 16, 0, Math.PI * 2);
         ctx.fillStyle = "#33ff33";
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(400, 250, 20, 0, Math.PI * 2);
+        ctx.arc(CORRECT_X, CORRECT_Y, 16, 0, Math.PI * 2);
         ctx.strokeStyle = "white";
         ctx.lineWidth = 3;
         ctx.stroke();
+        ctx.fillStyle = "#00aa00";
+        ctx.font = "bold 12px Arial";
+        ctx.fillText("✅ CORRECT: Istanbul", CORRECT_X + 12, CORRECT_Y - 8);
         
-        // Show where you clicked
+        // Draw line
         ctx.beginPath();
-        ctx.arc(x, y, 12, 0, Math.PI * 2);
-        ctx.fillStyle = "white";
-        ctx.fill();
-        
-        ctx.fillStyle = "black";
-        ctx.font = "14px Arial";
-        ctx.fillText("YOU CLICKED HERE", x + 10, y - 5);
-        ctx.fillStyle = "#33ff33";
-        ctx.fillText("✅ CORRECT LOCATION", 400, 220);
+        ctx.moveTo(clickX, clickY);
+        ctx.lineTo(CORRECT_X, CORRECT_Y);
+        ctx.strokeStyle = "#ffaa33";
+        ctx.lineWidth = 2;
+        ctx.stroke();
     });
 </script>
 </body>
