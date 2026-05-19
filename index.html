@@ -117,6 +117,11 @@
             border-radius: 20px;
             color: #ffd966;
         }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
         button {
             background: #d9a13b;
             border: none;
@@ -125,11 +130,15 @@
             font-weight: bold;
             border-radius: 50px;
             cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
+            flex: 1;
             color: #2c2b28;
         }
         button:active { transform: scale(0.98); }
+        #nextBtn {
+            background: #2f6b3c;
+            color: white;
+        }
+        #nextBtn:active { transform: scale(0.98); }
         
         .points-breakdown {
             background: #2c2b28;
@@ -176,7 +185,10 @@
         <div>❌ 300km+: <span>0 pts</span></div>
     </div>
     
-    <button id="resetBtn">🔄 PLAY AGAIN</button>
+    <div class="button-group">
+        <button id="resetBtn">🔄 PLAY AGAIN</button>
+        <button id="nextBtn">➡️ NEXT CITY</button>
+    </div>
 </div>
 
 <script>
@@ -189,11 +201,11 @@
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // CORRECTED Turkey geographic bounds from Wikipedia Location Map module [citation:8]
-    const TURKEY_NORTH = 42.5;   // Top edge latitude
-    const TURKEY_SOUTH = 35.5;   // Bottom edge latitude
-    const TURKEY_WEST = 25.4;    // Left edge longitude
-    const TURKEY_EAST = 45.0;    // Right edge longitude
+    // Corrected Turkey geographic bounds from Wikipedia Location Map module
+    const TURKEY_NORTH = 42.5;
+    const TURKEY_SOUTH = 35.5;
+    const TURKEY_WEST = 25.4;
+    const TURKEY_EAST = 45.0;
     
     const CANVAS_WIDTH = 1024;
     const CANVAS_HEIGHT = 500;
@@ -221,10 +233,9 @@
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
     
-    // ACCURATE city coordinates from authoritative sources (Wikipedia, Williams College, NIH)
+    // Accurate city coordinates from authoritative sources
     const allCities = [
-        // Major cities with verified coordinates
-        { name: "Istanbul", lat: 41.00945, lon: 28.95370 },  // Williams College [citation:1]
+        { name: "Istanbul", lat: 41.00945, lon: 28.95370 },
         { name: "Ankara", lat: 39.9208, lon: 32.8541 },
         { name: "Izmir", lat: 38.4189, lon: 27.1287 },
         { name: "Bursa", lat: 40.1826, lon: 29.0665 },
@@ -238,13 +249,12 @@
         { name: "Kayseri", lat: 38.7239, lon: 35.4801 },
         { name: "Samsun", lat: 41.2871, lon: 36.3234 },
         { name: "Erzurum", lat: 39.9051, lon: 41.2709 },
-        { name: "Van", lat: 38.6658, lon: 44.1492 },  // NIH data [citation:5]
+        { name: "Van", lat: 38.6658, lon: 44.1492 },
         { name: "Malatya", lat: 38.3552, lon: 38.3095 },
         { name: "Denizli", lat: 37.7735, lon: 29.0865 },
         { name: "Şanlıurfa", lat: 37.1591, lon: 38.7969 },
         { name: "Eskişehir", lat: 39.7700, lon: 30.5025 },
         { name: "Edirne", lat: 41.6771, lon: 26.5557 },
-        // All 81 provinces with accurate coordinates
         { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
         { name: "Afyonkarahisar", lat: 38.7584, lon: 30.5383 },
         { name: "Ağrı", lat: 39.7195, lon: 43.0505 },
@@ -323,7 +333,6 @@
     let canClick = true;
     let mapLoaded = false;
     let gameActive = true;
-    let nextQuestionTimeout = null;
     let hasAnsweredCurrent = false;
     
     let showMarkers = false;
@@ -426,6 +435,7 @@
         document.getElementById('message').innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
         document.getElementById('feedback').innerHTML = "";
         document.getElementById('progress').innerHTML = `🏁 Game finished! Click "PLAY AGAIN" for a new round 🏁`;
+        document.getElementById('nextBtn').style.display = "none";
         
         let finalDiv = document.getElementById('finalScore');
         if (!finalDiv) {
@@ -504,24 +514,33 @@
         
         hasAnsweredCurrent = true;
         canClick = false;
-        
-        if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
-        
-        nextQuestionTimeout = setTimeout(() => {
-            currentQuestionIndex++;
-            loadNextQuestion();
-        }, 4000);
+    }
+    
+    function nextCity() {
+        if (!gameActive) return;
+        if (!hasAnsweredCurrent) {
+            document.getElementById('message').innerHTML = "⚠️ Please click on the map to answer first!";
+            document.getElementById('message').className = "message miss";
+            setTimeout(() => {
+                if (gameActive && !hasAnsweredCurrent) {
+                    document.getElementById('message').className = "message message-info";
+                    document.getElementById('message').innerHTML = "📍 CLICK ON THE MAP where you think the city is located";
+                }
+            }, 1500);
+            return;
+        }
+        currentQuestionIndex++;
+        loadNextQuestion();
     }
     
     function resetGame() {
-        if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
-        
         gameActive = true;
         totalScore = 0;
         currentQuestionIndex = 0;
         hasAnsweredCurrent = false;
         showMarkers = false;
         document.getElementById('score').innerText = "0";
+        document.getElementById('nextBtn').style.display = "block";
         
         const finalDiv = document.getElementById('finalScore');
         if (finalDiv) finalDiv.remove();
@@ -534,6 +553,7 @@
     
     canvas.addEventListener('click', handleCanvasClick);
     document.getElementById('resetBtn').addEventListener('click', resetGame);
+    document.getElementById('nextBtn').addEventListener('click', nextCity);
 </script>
 </body>
 </html>
