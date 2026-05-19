@@ -54,7 +54,6 @@
             font-size: 1.8rem;
         }
         
-        /* Scoring Info Table */
         .scoring-info {
             background: #e8e0c8;
             border-radius: 20px;
@@ -80,9 +79,7 @@
             font-size: 0.8rem;
             color: #ffd966;
         }
-        .score-item span {
-            color: white;
-        }
+        .score-item span { color: white; }
         
         .map-container {
             text-align: center;
@@ -106,22 +103,13 @@
             margin: 10px 0;
             font-weight: bold;
         }
-        .message-info {
-            background: #e8e0c8;
-            color: #2c2b28;
-            border: 2px solid #c9b27c;
-        }
+        .message-info { background: #e8e0c8; color: #2c2b28; border: 2px solid #c9b27c; }
         .perfect { background: #a5d6a5; color: #1a472a; border: 2px solid #2f6b3c; }
         .good { background: #c8e6c8; color: #1a472a; border: 2px solid #4a8c3a; }
         .close { background: #ffe0b3; color: #5c3a1a; border: 2px solid #c9a13b; }
         .far { background: #ffcc99; color: #5c3a1a; border: 2px solid #b87a2a; }
         .miss { background: #ffb3b3; color: #8b0000; border: 2px solid #cc0000; }
-        .game-complete {
-            background: #a5d6a5;
-            color: #1a472a;
-            border: 3px solid #2f6b3c;
-            font-size: 1.3rem;
-        }
+        .game-complete { background: #a5d6a5; color: #1a472a; border: 3px solid #2f6b3c; font-size: 1.3rem; }
         .feedback {
             font-size: 0.9rem;
             margin-top: 8px;
@@ -166,7 +154,7 @@
         }
         button:active { transform: scale(0.98); }
         
-        /* Flashlight/Fireworks Animation Canvas */
+        /* Fireworks canvas - fixed to work properly */
         #fireworksCanvas {
             position: fixed;
             top: 0;
@@ -174,7 +162,8 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 999;
+            z-index: 9999;
+            display: block;
         }
         
         @media (max-width: 700px) {
@@ -191,16 +180,15 @@
         <div class="target">🎯 FIND: <span class="city-name" id="targetCity">Loading...</span></div>
     </div>
     
-    <!-- Scoring Info Table -->
     <div class="scoring-info">
-        <h4>📊 SCORING SYSTEM</h4>
+        <h4>📊 SCORING SYSTEM (Based on actual province areas)</h4>
         <div class="scoring-table">
-            <div class="score-item">🎯 0-60km: <span>200 points</span></div>
-            <div class="score-item">👍 61-100km: <span>160 points</span></div>
-            <div class="score-item">✅ 101-150km: <span>120 points</span></div>
-            <div class="score-item">📌 151-200km: <span>80 points</span></div>
-            <div class="score-item">🔍 201-300km: <span>40 points</span></div>
-            <div class="score-item">❌ 300km+: <span>0 points</span></div>
+            <div class="score-item">🎯 Within Province Border: <span>200 points</span></div>
+            <div class="score-item">👍 0-50km over border: <span>160 points</span></div>
+            <div class="score-item">✅ 50-100km over: <span>120 points</span></div>
+            <div class="score-item">📌 100-150km over: <span>80 points</span></div>
+            <div class="score-item">🔍 150-200km over: <span>40 points</span></div>
+            <div class="score-item">❌ 200km+ over: <span>0 points</span></div>
         </div>
     </div>
     
@@ -218,20 +206,22 @@
 <canvas id="fireworksCanvas"></canvas>
 
 <script>
-    // Fireworks/Flashlight Animation System
-    const fireworksCanvas = document.getElementById('fireworksCanvas');
-    const fwCtx = fireworksCanvas.getContext('2d');
-    let fireworks = [];
-    let animationRunning = false;
-    let animationId = null;
+    // ============================================
+    // WORKING FIREWORKS ANIMATION
+    // ============================================
+    const fwCanvas = document.getElementById('fireworksCanvas');
+    const fwCtx = fwCanvas.getContext('2d');
+    let particles = [];
+    let fireworksAnimationId = null;
     
-    function resizeFireworksCanvas() {
-        fireworksCanvas.width = window.innerWidth;
-        fireworksCanvas.height = window.innerHeight;
+    function resizeFwCanvas() {
+        fwCanvas.width = window.innerWidth;
+        fwCanvas.height = window.innerHeight;
     }
-    window.addEventListener('resize', resizeFireworksCanvas);
+    window.addEventListener('resize', resizeFwCanvas);
+    resizeFwCanvas();
     
-    class Particle {
+    class FireworkParticle {
         constructor(x, y, vx, vy, color, size = 3) {
             this.x = x;
             this.y = y;
@@ -241,11 +231,12 @@
             this.size = size;
             this.life = 1;
             this.decay = 0.02;
+            this.gravity = 0.15;
         }
         update() {
             this.x += this.vx;
             this.y += this.vy;
-            this.vy += 0.15;
+            this.vy += this.gravity;
             this.life -= this.decay;
             return this.life > 0;
         }
@@ -258,393 +249,294 @@
         }
     }
     
-    class Firework {
-        constructor(x, y) {
-            this.x = x;
-            this.y = y;
-            this.particles = [];
-            const colors = ['#ff3300', '#ffaa00', '#ffff00', '#33ff33', '#33ffcc', '#ff33cc', '#ff00ff', '#00aaff'];
-            for (let i = 0; i < 80; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 5 + 2;
-                const vx = Math.cos(angle) * speed;
-                const vy = Math.sin(angle) * speed;
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                this.particles.push(new Particle(x, y, vx, vy, color, Math.random() * 3 + 2));
-            }
+    function createFirework(x, y) {
+        const colors = ['#ff3300', '#ffaa00', '#ffff00', '#33ff33', '#33ffcc', '#ff33cc', '#ff00ff', '#00aaff', '#ff6666', '#ffcc66'];
+        const particleCount = 80 + Math.floor(Math.random() * 40);
+        for (let i = 0; i < particleCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 6 + 2;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            particles.push(new FireworkParticle(x, y, vx, vy, color, Math.random() * 4 + 2));
         }
-        update() {
-            this.particles = this.particles.filter(p => p.update());
-            return this.particles.length > 0;
-        }
-        draw(ctx) {
-            this.particles.forEach(p => p.draw(ctx));
+    }
+    
+    function createRandomFirework() {
+        const x = Math.random() * fwCanvas.width;
+        const y = Math.random() * fwCanvas.height * 0.6 + fwCanvas.height * 0.1;
+        createFirework(x, y);
+    }
+    
+    function animateFireworks() {
+        fwCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        fwCtx.fillRect(0, 0, fwCanvas.width, fwCanvas.height);
+        
+        particles = particles.filter(p => p.update());
+        particles.forEach(p => p.draw(fwCtx));
+        
+        if (particles.length > 0) {
+            fireworksAnimationId = requestAnimationFrame(animateFireworks);
+        } else {
+            fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+            fireworksAnimationId = null;
         }
     }
     
     function startFireworks(score) {
-        let count = 0;
-        if (score >= 900) count = 30;
-        else if (score >= 800) count = 20;
-        else if (score >= 700) count = 12;
-        else if (score >= 600) count = 8;
+        let fireworkCount = 0;
+        if (score >= 900) fireworkCount = 25;
+        else if (score >= 800) fireworkCount = 15;
+        else if (score >= 700) fireworkCount = 10;
+        else if (score >= 600) fireworkCount = 6;
         else return;
         
-        if (animationRunning) {
-            fireworks = [];
-            if (animationId) cancelAnimationFrame(animationId);
+        // Clear any existing fireworks
+        if (fireworksAnimationId) {
+            cancelAnimationFrame(fireworksAnimationId);
+            fireworksAnimationId = null;
+        }
+        particles = [];
+        fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+        
+        // Create multiple fireworks over time
+        for (let i = 0; i < fireworkCount; i++) {
+            setTimeout(() => createRandomFirework(), i * 150);
         }
         
-        resizeFireworksCanvas();
-        animationRunning = true;
-        
-        function createFirework() {
-            const x = Math.random() * fireworksCanvas.width;
-            const y = Math.random() * fireworksCanvas.height * 0.7;
-            fireworks.push(new Firework(x, y));
-        }
-        
-        for (let i = 0; i < count; i++) {
-            setTimeout(() => createFirework(), i * 80);
-        }
-        
-        function animate() {
-            if (!animationRunning) return;
-            fwCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
-            fireworks = fireworks.filter(fw => {
-                const alive = fw.update();
-                fw.draw(fwCtx);
-                return alive;
-            });
-            if (fireworks.length === 0) {
-                animationRunning = false;
-                cancelAnimationFrame(animationId);
-                animationId = null;
-                fwCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
-                return;
-            }
-            animationId = requestAnimationFrame(animate);
-        }
-        
-        animate();
-        
+        // Start animation
         setTimeout(() => {
-            if (animationRunning) {
-                animationRunning = false;
-                if (animationId) cancelAnimationFrame(animationId);
-                fwCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+            if (particles.length > 0 && !fireworksAnimationId) {
+                fireworksAnimationId = requestAnimationFrame(animateFireworks);
             }
-        }, 5000);
+        }, 100);
+        
+        // Stop after 6 seconds
+        setTimeout(() => {
+            if (fireworksAnimationId) {
+                cancelAnimationFrame(fireworksAnimationId);
+                fireworksAnimationId = null;
+                particles = [];
+                fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+            }
+        }, 6000);
     }
     
-    // Main Game Code
+    // ============================================
+    // MAIN GAME
+    // ============================================
     const canvas = document.getElementById('turkeyCanvas');
     const ctx = canvas.getContext('2d');
-    
-    canvas.width = 1024;
-    canvas.height = 500;
-    
-    const mapImage = new Image();
+    canvas.width = 1024; canvas.height = 500;
+    const mapImage = new Image(); 
     mapImage.src = 'turkey-map.png';
     
-    // Turkey's geographic extreme points
-    const TURKEY_NORTH = 42.106;
-    const TURKEY_SOUTH = 35.813;
-    const TURKEY_WEST = 25.666;
-    const TURKEY_EAST = 44.818;
+    const TURKEY_NORTH = 42.106, TURKEY_SOUTH = 35.813, TURKEY_WEST = 25.666, TURKEY_EAST = 44.818;
+    const CANVAS_WIDTH = 1024, CANVAS_HEIGHT = 500;
     
-    const CANVAS_WIDTH = 1024;
-    const CANVAS_HEIGHT = 500;
-    
-    function latToY(lat) {
-        const ratio = (TURKEY_NORTH - lat) / (TURKEY_NORTH - TURKEY_SOUTH);
-        return ratio * CANVAS_HEIGHT;
+    function latToY(lat) { return ((TURKEY_NORTH - lat) / (TURKEY_NORTH - TURKEY_SOUTH)) * CANVAS_HEIGHT; }
+    function lonToX(lon) { return ((lon - TURKEY_WEST) / (TURKEY_EAST - TURKEY_WEST)) * CANVAS_WIDTH; }
+    function pixelToLatLon(x, y) { 
+        return { 
+            lon: TURKEY_WEST + (x / CANVAS_WIDTH) * (TURKEY_EAST - TURKEY_WEST), 
+            lat: TURKEY_NORTH - (y / CANVAS_HEIGHT) * (TURKEY_NORTH - TURKEY_SOUTH) 
+        }; 
     }
-    
-    function lonToX(lon) {
-        const ratio = (lon - TURKEY_WEST) / (TURKEY_EAST - TURKEY_WEST);
-        return ratio * CANVAS_WIDTH;
-    }
-    
-    function pixelToLatLon(x, y) {
-        const lon = TURKEY_WEST + (x / CANVAS_WIDTH) * (TURKEY_EAST - TURKEY_WEST);
-        const lat = TURKEY_NORTH - (y / CANVAS_HEIGHT) * (TURKEY_NORTH - TURKEY_SOUTH);
-        return { lat, lon };
-    }
-    
     function haversineDistance(lat1, lon1, lat2, lon2) {
         const R = 6371;
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
     
-    // ALL 81 Turkish provinces
+    // Province areas from Wikipedia (km²) - converted to radius (sqrt(area/π))
+    const provinceAreas = {
+        "Konya": 40814, "Sivas": 28567, "Ankara": 25402, "Erzurum": 25331, "Van": 19414,
+        "Şanlıurfa": 19336, "Kayseri": 17109, "Antalya": 16518, "Diyarbakır": 15204, "Mersin": 14556,
+        "Kahramanmaraş": 14457, "Balıkesir": 14473, "Afyonkarahisar": 14719, "Yozgat": 14074,
+        "Eskişehir": 13902, "Kastamonu": 13158, "Manisa": 13229, "Muğla": 12949,
+        "Kütahya": 12014, "İzmir": 12016, "Denizli": 11804, "Erzincan": 11728,
+        "Ağrı": 11499, "Bursa": 10886, "Kars": 10139, "Tokat": 10073,
+        "Çanakkale": 9950, "Malatya": 9903, "Trabzon": 4664, "Rize": 3922,
+        "İstanbul": 5315, "Kocaeli": 3625, "Yalova": 850, "Bartın": 2080, "Düzce": 2593
+    };
+    const DEFAULT_RADIUS = 70;
+    
+    function getProvinceRadius(provinceName) {
+        const area = provinceAreas[provinceName];
+        if (!area) return DEFAULT_RADIUS;
+        // radius = sqrt(area / π) - convert area to radius in km
+        const radius = Math.sqrt(area / Math.PI);
+        // Cap at 120km max, minimum 40km
+        return Math.min(120, Math.max(40, Math.round(radius)));
+    }
+    
+    function calculatePoints(distanceKm, provinceName) {
+        const fullRadius = getProvinceRadius(provinceName);
+        if (distanceKm <= fullRadius) return 200;
+        const over = distanceKm - fullRadius;
+        if (over <= 50) return 160;
+        if (over <= 100) return 120;
+        if (over <= 150) return 80;
+        if (over <= 200) return 40;
+        return 0;
+    }
+    
+    function getGradeText(distanceKm, provinceName) {
+        const fullRadius = getProvinceRadius(provinceName);
+        if (distanceKm <= fullRadius) return `🎯 PERFECT! (Within ${fullRadius}km of ${provinceName})`;
+        const over = distanceKm - fullRadius;
+        if (over <= 50) return "👍 EXCELLENT!";
+        if (over <= 100) return "✅ VERY GOOD!";
+        if (over <= 150) return "📌 GOOD!";
+        if (over <= 200) return "🔍 NOT BAD";
+        return "❌ MISS";
+    }
+    
+    // All 81 Turkish provinces
     const allCities = [
-        { name: "Adana", lat: 36.9919, lon: 35.3308 },
-        { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
-        { name: "Afyonkarahisar", lat: 38.7584, lon: 30.5383 },
-        { name: "Ağrı", lat: 39.7195, lon: 43.0505 },
-        { name: "Aksaray", lat: 38.3747, lon: 34.0289 },
-        { name: "Amasya", lat: 40.6517, lon: 35.8336 },
-        { name: "Ankara", lat: 39.9208, lon: 32.8541 },
-        { name: "Antalya", lat: 36.8969, lon: 30.7133 },
-        { name: "Ardahan", lat: 41.1105, lon: 42.7022 },
-        { name: "Artvin", lat: 41.1825, lon: 41.8189 },
-        { name: "Aydın", lat: 37.8416, lon: 27.8456 },
-        { name: "Balıkesir", lat: 39.6484, lon: 27.8826 },
-        { name: "Bartın", lat: 41.6355, lon: 32.3362 },
-        { name: "Batman", lat: 37.8812, lon: 41.1351 },
-        { name: "Bayburt", lat: 40.2554, lon: 40.2231 },
-        { name: "Bilecik", lat: 40.1431, lon: 29.9794 },
-        { name: "Bingöl", lat: 38.8863, lon: 40.4987 },
-        { name: "Bitlis", lat: 38.4000, lon: 42.1083 },
-        { name: "Bolu", lat: 40.7356, lon: 31.6086 },
-        { name: "Burdur", lat: 37.7203, lon: 30.2908 },
-        { name: "Bursa", lat: 40.1826, lon: 29.0665 },
-        { name: "Çanakkale", lat: 40.1553, lon: 26.4142 },
-        { name: "Çankırı", lat: 40.6000, lon: 33.6167 },
-        { name: "Çorum", lat: 40.5492, lon: 34.9536 },
-        { name: "Denizli", lat: 37.7735, lon: 29.0865 },
-        { name: "Diyarbakır", lat: 37.9144, lon: 40.2306 },
-        { name: "Düzce", lat: 40.8389, lon: 31.1656 },
-        { name: "Edirne", lat: 41.6771, lon: 26.5557 },
-        { name: "Elazığ", lat: 38.6811, lon: 39.2256 },
-        { name: "Erzincan", lat: 39.7464, lon: 39.4925 },
-        { name: "Erzurum", lat: 39.9051, lon: 41.2709 },
-        { name: "Eskişehir", lat: 39.7700, lon: 30.5025 },
-        { name: "Gaziantep", lat: 37.0662, lon: 37.3833 },
-        { name: "Giresun", lat: 40.9128, lon: 38.3894 },
-        { name: "Gümüşhane", lat: 40.4603, lon: 39.4769 },
-        { name: "Hakkâri", lat: 37.5747, lon: 43.7408 },
-        { name: "Hatay", lat: 36.4018, lon: 36.3498 },
-        { name: "Iğdır", lat: 39.9200, lon: 44.0440 },
-        { name: "Isparta", lat: 37.7644, lon: 30.5564 },
-        { name: "İstanbul", lat: 41.0082, lon: 28.9784 },
-        { name: "İzmir", lat: 38.4189, lon: 27.1287 },
-        { name: "Kahramanmaraş", lat: 37.5875, lon: 36.9317 },
-        { name: "Karabük", lat: 41.2061, lon: 32.6194 },
-        { name: "Karaman", lat: 37.1811, lon: 33.2150 },
-        { name: "Kars", lat: 40.6017, lon: 43.0975 },
-        { name: "Kastamonu", lat: 41.3887, lon: 33.7825 },
-        { name: "Kayseri", lat: 38.7239, lon: 35.4801 },
-        { name: "Kilis", lat: 36.7167, lon: 37.1167 },
-        { name: "Kırıkkale", lat: 39.8468, lon: 33.5153 },
-        { name: "Kırklareli", lat: 41.7358, lon: 27.2252 },
-        { name: "Kırşehir", lat: 39.1464, lon: 34.1597 },
-        { name: "Kocaeli", lat: 40.7655, lon: 29.9408 },
-        { name: "Konya", lat: 37.8704, lon: 32.5110 },
-        { name: "Kütahya", lat: 39.4217, lon: 29.9879 },
-        { name: "Malatya", lat: 38.3552, lon: 38.3095 },
-        { name: "Manisa", lat: 38.6133, lon: 27.4250 },
-        { name: "Mardin", lat: 37.3132, lon: 40.7351 },
-        { name: "Mersin", lat: 36.8000, lon: 34.6333 },
-        { name: "Muğla", lat: 37.2153, lon: 28.3636 },
-        { name: "Muş", lat: 38.7347, lon: 41.4911 },
-        { name: "Nevşehir", lat: 38.6250, lon: 34.7167 },
-        { name: "Niğde", lat: 37.9667, lon: 34.6833 },
-        { name: "Ordu", lat: 40.9839, lon: 37.8764 },
-        { name: "Osmaniye", lat: 37.0750, lon: 36.2500 },
-        { name: "Rize", lat: 41.0208, lon: 40.5219 },
-        { name: "Sakarya", lat: 40.7732, lon: 30.3947 },
-        { name: "Samsun", lat: 41.2871, lon: 36.3234 },
-        { name: "Siirt", lat: 37.9311, lon: 41.9453 },
-        { name: "Sinop", lat: 42.0239, lon: 35.1531 },
-        { name: "Sivas", lat: 39.7515, lon: 37.0172 },
-        { name: "Şanlıurfa", lat: 37.1591, lon: 38.7969 },
-        { name: "Şırnak", lat: 37.5163, lon: 42.4610 },
-        { name: "Tekirdağ", lat: 40.9789, lon: 27.5106 },
-        { name: "Tokat", lat: 40.3139, lon: 36.5544 },
-        { name: "Trabzon", lat: 41.0061, lon: 39.7191 },
-        { name: "Tunceli", lat: 39.1075, lon: 39.5489 },
-        { name: "Uşak", lat: 38.6775, lon: 29.4058 },
-        { name: "Van", lat: 38.5012, lon: 43.3730 },
-        { name: "Yalova", lat: 40.6550, lon: 29.2775 },
-        { name: "Yozgat", lat: 39.8200, lon: 34.8094 },
+        { name: "Adana", lat: 36.9919, lon: 35.3308 }, { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
+        { name: "Afyonkarahisar", lat: 38.7584, lon: 30.5383 }, { name: "Ağrı", lat: 39.7195, lon: 43.0505 },
+        { name: "Aksaray", lat: 38.3747, lon: 34.0289 }, { name: "Amasya", lat: 40.6517, lon: 35.8336 },
+        { name: "Ankara", lat: 39.9208, lon: 32.8541 }, { name: "Antalya", lat: 36.8969, lon: 30.7133 },
+        { name: "Ardahan", lat: 41.1105, lon: 42.7022 }, { name: "Artvin", lat: 41.1825, lon: 41.8189 },
+        { name: "Aydın", lat: 37.8416, lon: 27.8456 }, { name: "Balıkesir", lat: 39.6484, lon: 27.8826 },
+        { name: "Bartın", lat: 41.6355, lon: 32.3362 }, { name: "Batman", lat: 37.8812, lon: 41.1351 },
+        { name: "Bayburt", lat: 40.2554, lon: 40.2231 }, { name: "Bilecik", lat: 40.1431, lon: 29.9794 },
+        { name: "Bingöl", lat: 38.8863, lon: 40.4987 }, { name: "Bitlis", lat: 38.4000, lon: 42.1083 },
+        { name: "Bolu", lat: 40.7356, lon: 31.6086 }, { name: "Burdur", lat: 37.7203, lon: 30.2908 },
+        { name: "Bursa", lat: 40.1826, lon: 29.0665 }, { name: "Çanakkale", lat: 40.1553, lon: 26.4142 },
+        { name: "Çankırı", lat: 40.6000, lon: 33.6167 }, { name: "Çorum", lat: 40.5492, lon: 34.9536 },
+        { name: "Denizli", lat: 37.7735, lon: 29.0865 }, { name: "Diyarbakır", lat: 37.9144, lon: 40.2306 },
+        { name: "Düzce", lat: 40.8389, lon: 31.1656 }, { name: "Edirne", lat: 41.6771, lon: 26.5557 },
+        { name: "Elazığ", lat: 38.6811, lon: 39.2256 }, { name: "Erzincan", lat: 39.7464, lon: 39.4925 },
+        { name: "Erzurum", lat: 39.9051, lon: 41.2709 }, { name: "Eskişehir", lat: 39.7700, lon: 30.5025 },
+        { name: "Gaziantep", lat: 37.0662, lon: 37.3833 }, { name: "Giresun", lat: 40.9128, lon: 38.3894 },
+        { name: "Gümüşhane", lat: 40.4603, lon: 39.4769 }, { name: "Hakkâri", lat: 37.5747, lon: 43.7408 },
+        { name: "Hatay", lat: 36.4018, lon: 36.3498 }, { name: "Iğdır", lat: 39.9200, lon: 44.0440 },
+        { name: "Isparta", lat: 37.7644, lon: 30.5564 }, { name: "İstanbul", lat: 41.0082, lon: 28.9784 },
+        { name: "İzmir", lat: 38.4189, lon: 27.1287 }, { name: "Kahramanmaraş", lat: 37.5875, lon: 36.9317 },
+        { name: "Karabük", lat: 41.2061, lon: 32.6194 }, { name: "Karaman", lat: 37.1811, lon: 33.2150 },
+        { name: "Kars", lat: 40.6017, lon: 43.0975 }, { name: "Kastamonu", lat: 41.3887, lon: 33.7825 },
+        { name: "Kayseri", lat: 38.7239, lon: 35.4801 }, { name: "Kilis", lat: 36.7167, lon: 37.1167 },
+        { name: "Kırıkkale", lat: 39.8468, lon: 33.5153 }, { name: "Kırklareli", lat: 41.7358, lon: 27.2252 },
+        { name: "Kırşehir", lat: 39.1464, lon: 34.1597 }, { name: "Kocaeli", lat: 40.7655, lon: 29.9408 },
+        { name: "Konya", lat: 37.8704, lon: 32.5110 }, { name: "Kütahya", lat: 39.4217, lon: 29.9879 },
+        { name: "Malatya", lat: 38.3552, lon: 38.3095 }, { name: "Manisa", lat: 38.6133, lon: 27.4250 },
+        { name: "Mardin", lat: 37.3132, lon: 40.7351 }, { name: "Mersin", lat: 36.8000, lon: 34.6333 },
+        { name: "Muğla", lat: 37.2153, lon: 28.3636 }, { name: "Muş", lat: 38.7347, lon: 41.4911 },
+        { name: "Nevşehir", lat: 38.6250, lon: 34.7167 }, { name: "Niğde", lat: 37.9667, lon: 34.6833 },
+        { name: "Ordu", lat: 40.9839, lon: 37.8764 }, { name: "Osmaniye", lat: 37.0750, lon: 36.2500 },
+        { name: "Rize", lat: 41.0208, lon: 40.5219 }, { name: "Sakarya", lat: 40.7732, lon: 30.3947 },
+        { name: "Samsun", lat: 41.2871, lon: 36.3234 }, { name: "Siirt", lat: 37.9311, lon: 41.9453 },
+        { name: "Sinop", lat: 42.0239, lon: 35.1531 }, { name: "Sivas", lat: 39.7515, lon: 37.0172 },
+        { name: "Şanlıurfa", lat: 37.1591, lon: 38.7969 }, { name: "Şırnak", lat: 37.5163, lon: 42.4610 },
+        { name: "Tekirdağ", lat: 40.9789, lon: 27.5106 }, { name: "Tokat", lat: 40.3139, lon: 36.5544 },
+        { name: "Trabzon", lat: 41.0061, lon: 39.7191 }, { name: "Tunceli", lat: 39.1075, lon: 39.5489 },
+        { name: "Uşak", lat: 38.6775, lon: 29.4058 }, { name: "Van", lat: 38.5012, lon: 43.3730 },
+        { name: "Yalova", lat: 40.6550, lon: 29.2775 }, { name: "Yozgat", lat: 39.8200, lon: 34.8094 },
         { name: "Zonguldak", lat: 41.4564, lon: 31.7975 }
     ];
     
-    const cities = allCities.map(city => ({
-        name: city.name,
-        lat: city.lat,
-        lon: city.lon,
-        x: lonToX(city.lon),
-        y: latToY(city.lat)
-    }));
+    const cities = allCities.map(city => ({ ...city, x: lonToX(city.lon), y: latToY(city.lat) }));
     
-    let currentRound = [];
-    let currentQuestionIndex = 0;
-    let currentCity = null;
-    let totalScore = 0;
-    let canClick = true;
-    let mapLoaded = false;
-    let gameActive = true;
-    let nextQuestionTimeout = null;
-    let hasAnsweredCurrent = false;
+    let currentRound = [], currentQuestionIndex = 0, currentCity = null, totalScore = 0, canClick = true, mapLoaded = false, gameActive = true, nextQuestionTimeout = null, hasAnsweredCurrent = false;
     
-    function shuffleArray(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
-    }
-    
-    function selectRandomCities() {
-        const shuffled = shuffleArray([...cities]);
-        return shuffled.slice(0, 5);
-    }
+    function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+    function selectRandomCities() { return shuffleArray([...cities]).slice(0, 5); }
     
     function drawMap(clickX = null, clickY = null) {
         if (!mapLoaded) return;
         ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         ctx.drawImage(mapImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         if (clickX && clickY) {
-            ctx.beginPath();
-            ctx.arc(clickX, clickY, 14, 0, Math.PI * 2);
-            ctx.strokeStyle = "#ffffff";
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(clickX, clickY, 7, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255,255,255,0.6)";
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(clickX, clickY, 14, 0, Math.PI * 2);
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3; ctx.stroke();
+            ctx.beginPath(); ctx.arc(clickX, clickY, 7, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.fill();
         }
     }
     
-    mapImage.onload = function() {
-        mapLoaded = true;
-        drawMap();
-    };
-    
-    mapImage.onerror = function() {
-        document.getElementById('message').innerHTML = "⚠️ Map image not found! Please upload turkey-map.png";
-        document.getElementById('message').className = "message miss";
-    };
-    
-    function calculatePoints(distanceKm) {
-        if (distanceKm <= 60) return 200;
-        if (distanceKm <= 100) return 160;
-        if (distanceKm <= 150) return 120;
-        if (distanceKm <= 200) return 80;
-        if (distanceKm <= 300) return 40;
-        return 0;
-    }
-    
-    function getGradeText(distanceKm) {
-        if (distanceKm <= 60) return "🎯 PERFECT! (Within Province!)";
-        if (distanceKm <= 100) return "👍 EXCELLENT!";
-        if (distanceKm <= 150) return "✅ VERY GOOD!";
-        if (distanceKm <= 200) return "📌 GOOD!";
-        if (distanceKm <= 300) return "🔍 NOT BAD";
-        return "❌ MISS";
-    }
+    mapImage.onload = function() { mapLoaded = true; drawMap(); };
+    mapImage.onerror = function() { document.getElementById('message').innerHTML = "⚠️ Map image not found! Please upload turkey-map.png"; document.getElementById('message').className = "message miss"; };
     
     function endGame() {
         gameActive = false;
-        const messageDiv = document.getElementById('message');
-        messageDiv.className = "message game-complete";
-        messageDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
-        
+        document.getElementById('message').className = "message game-complete";
+        document.getElementById('message').innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
         document.getElementById('feedback').innerHTML = "";
         document.getElementById('progress').innerHTML = `🏁 Game finished! Click "PLAY AGAIN" for a new round 🏁`;
-        
         let finalDiv = document.getElementById('finalScore');
-        if (!finalDiv) {
-            finalDiv = document.createElement('div');
-            finalDiv.id = 'finalScore';
-            finalDiv.className = 'final-score';
-            document.querySelector('.game').appendChild(finalDiv);
-        }
+        if (!finalDiv) { finalDiv = document.createElement('div'); finalDiv.id = 'finalScore'; finalDiv.className = 'final-score'; document.querySelector('.game').appendChild(finalDiv); }
         finalDiv.innerHTML = `🏆 FINAL SCORE: ${totalScore} / 1000 🏆`;
         
-        // Trigger fireworks animation based on score
+        // FIREWORKS! This should now work
+        console.log("Final score:", totalScore);
         startFireworks(totalScore);
     }
     
     function loadNextQuestion() {
-        if (currentQuestionIndex >= currentRound.length) {
-            endGame();
-            return;
-        }
+        if (currentQuestionIndex >= currentRound.length) { endGame(); return; }
         hasAnsweredCurrent = false;
         currentCity = currentRound[currentQuestionIndex];
         document.getElementById('targetCity').innerText = currentCity.name;
         document.getElementById('progress').innerHTML = `📍 Question ${currentQuestionIndex + 1} of ${currentRound.length}`;
-        const msgDiv = document.getElementById('message');
-        msgDiv.className = "message message-info";
-        msgDiv.innerHTML = "📍 CLICK ON THE MAP where you think the city is located";
+        document.getElementById('message').className = "message message-info";
+        document.getElementById('message').innerHTML = "📍 CLICK ON THE MAP where you think the city is located";
         document.getElementById('feedback').innerHTML = "";
-        drawMap();
-        canClick = true;
+        drawMap(); canClick = true;
     }
     
     function handleCanvasClick(e) {
         if (!gameActive || !canClick || !currentCity || !mapLoaded || hasAnsweredCurrent) return;
-        
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const clickX = (e.clientX - rect.left) * scaleX;
-        const clickY = (e.clientY - rect.top) * scaleY;
+        const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+        const clickX = (e.clientX - rect.left) * scaleX, clickY = (e.clientY - rect.top) * scaleY;
         const clickLatLon = pixelToLatLon(clickX, clickY);
         const distanceKm = haversineDistance(clickLatLon.lat, clickLatLon.lon, currentCity.lat, currentCity.lon);
-        const points = calculatePoints(distanceKm);
+        const points = calculatePoints(distanceKm, currentCity.name);
         totalScore += points;
-        const gradeText = getGradeText(distanceKm);
-        
+        const gradeText = getGradeText(distanceKm, currentCity.name);
         document.getElementById('score').innerText = totalScore;
         
         const messageDiv = document.getElementById('message');
         let gradeClass = "miss";
-        if (distanceKm <= 60) gradeClass = "perfect";
-        else if (distanceKm <= 100) gradeClass = "perfect";
-        else if (distanceKm <= 150) gradeClass = "good";
-        else if (distanceKm <= 200) gradeClass = "good";
-        else if (distanceKm <= 300) gradeClass = "close";
+        const radius = getProvinceRadius(currentCity.name);
+        if (distanceKm <= radius) gradeClass = "perfect";
+        else if (distanceKm <= radius + 50) gradeClass = "perfect";
+        else if (distanceKm <= radius + 100) gradeClass = "good";
+        else if (distanceKm <= radius + 150) gradeClass = "good";
+        else if (distanceKm <= radius + 200) gradeClass = "close";
         
         messageDiv.className = `message ${gradeClass}`;
         messageDiv.innerHTML = `${gradeText}<br>📍 ${Math.round(distanceKm)} km from ${currentCity.name}<br>⭐ +${points} points!`;
-        
-        let feedbackText = `You clicked ${Math.round(distanceKm)} km away from ${currentCity.name}`;
-        if (distanceKm <= 60) feedbackText += ` 🎉 Perfect! You hit the province!`;
-        document.getElementById('feedback').innerHTML = feedbackText;
+        document.getElementById('feedback').innerHTML = `You clicked ${Math.round(distanceKm)} km away from ${currentCity.name} ${distanceKm <= getProvinceRadius(currentCity.name) ? `🎉 Perfect! Within ${getProvinceRadius(currentCity.name)}km of ${currentCity.name}!` : ''}`;
         drawMap(clickX, clickY);
-        hasAnsweredCurrent = true;
-        canClick = false;
+        hasAnsweredCurrent = true; canClick = false;
         if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
-        nextQuestionTimeout = setTimeout(() => {
-            currentQuestionIndex++;
-            loadNextQuestion();
-        }, 2000);
+        nextQuestionTimeout = setTimeout(() => { currentQuestionIndex++; loadNextQuestion(); }, 2000);
     }
     
     function resetGame() {
         if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
-        gameActive = true;
-        totalScore = 0;
-        currentQuestionIndex = 0;
-        hasAnsweredCurrent = false;
+        gameActive = true; totalScore = 0; currentQuestionIndex = 0; hasAnsweredCurrent = false;
         document.getElementById('score').innerText = "0";
-        const finalDiv = document.getElementById('finalScore');
-        if (finalDiv) finalDiv.remove();
-        currentRound = selectRandomCities();
-        loadNextQuestion();
-        if (animationRunning) {
-            animationRunning = false;
-            if (animationId) cancelAnimationFrame(animationId);
-            fwCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+        const finalDiv = document.getElementById('finalScore'); if (finalDiv) finalDiv.remove();
+        currentRound = selectRandomCities(); loadNextQuestion();
+        
+        // Stop any ongoing fireworks
+        if (fireworksAnimationId) {
+            cancelAnimationFrame(fireworksAnimationId);
+            fireworksAnimationId = null;
         }
+        particles = [];
+        fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
     }
     
     resetGame();
     canvas.addEventListener('click', handleCanvasClick);
     document.getElementById('resetBtn').addEventListener('click', resetGame);
-    resizeFireworksCanvas();
 </script>
 </body>
 </html>
