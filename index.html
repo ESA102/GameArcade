@@ -66,6 +66,32 @@
             height: auto;
             border: 2px solid #c9b27c;
         }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0 10px 0;
+            justify-content: center;
+        }
+        button {
+            background: #d9a13b;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            color: #2c2b28;
+            min-width: 150px;
+        }
+        button:active { transform: scale(0.97); }
+        #nextBtn { background: #2f6b3c; color: white; }
+        #resetBtn { background: #8b6c3c; color: white; }
+        .instruction {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6b4c2c;
+            margin-top: 5px;
+        }
         .message {
             padding: 12px;
             border-radius: 50px;
@@ -109,32 +135,6 @@
             border-radius: 20px;
             color: #ffd966;
         }
-        .button-group {
-            display: flex;
-            gap: 15px;
-            margin: 15px 0 10px 0;
-            justify-content: center;
-        }
-        button {
-            background: #d9a13b;
-            border: none;
-            padding: 12px 30px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            border-radius: 50px;
-            cursor: pointer;
-            color: #2c2b28;
-            min-width: 150px;
-        }
-        button:active { transform: scale(0.97); }
-        #nextBtn { background: #2f6b3c; color: white; }
-        #resetBtn { background: #8b6c3c; color: white; }
-        .instruction {
-            text-align: center;
-            font-size: 0.9rem;
-            color: #6b4c2c;
-            margin-top: 5px;
-        }
         .points-breakdown {
             background: #2c2b28;
             border-radius: 20px;
@@ -148,6 +148,12 @@
             gap: 12px;
         }
         .points-breakdown span { color: white; }
+        .calibration-note {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #8b6c3c;
+            margin-top: 10px;
+        }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
@@ -167,13 +173,11 @@
         <canvas id="turkeyCanvas" width="1024" height="500"></canvas>
     </div>
     
-    <!-- BUTTONS RIGHT BELOW THE MAP -->
     <div class="button-group">
         <button id="resetBtn">🔄 PLAY AGAIN</button>
         <button id="nextBtn">➡️ NEXT CITY</button>
     </div>
     
-    <!-- INSTRUCTION TEXT (small, below buttons) -->
     <div class="instruction">📍 Click on the map where you think the city is located</div>
     
     <div class="message message-info" id="message">Ready! Click on the map to start</div>
@@ -188,6 +192,7 @@
         <div>🔍 201-300km: <span>40 pts</span></div>
         <div>❌ 300km+: <span>0 pts</span></div>
     </div>
+    <div class="calibration-note">⚙️ Calibrated for this map: North=40.8°</div>
 </div>
 
 <script>
@@ -200,8 +205,9 @@
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // Corrected bounds for your map
-    const TURKEY_NORTH = 41.5;
+    // SIGNIFICANTLY LOWERED northern bound to bring coastal cities onto land
+    // Rize and Trabzon are at ~41.0°N, so north bound must be lower than that
+    const TURKEY_NORTH = 40.8;    // Lowered significantly for your map
     const TURKEY_SOUTH = 35.8;
     const TURKEY_WEST = 25.8;
     const TURKEY_EAST = 44.5;
@@ -360,7 +366,6 @@
         ctx.drawImage(mapImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         
         if (showMarkers) {
-            // User's click (white)
             if (clickXMarker && clickYMarker) {
                 ctx.beginPath();
                 ctx.arc(clickXMarker, clickYMarker, 12, 0, Math.PI * 2);
@@ -373,7 +378,6 @@
                 ctx.stroke();
             }
             
-            // Correct location (green)
             if (correctXMarker && correctYMarker) {
                 ctx.beginPath();
                 ctx.arc(correctXMarker, correctYMarker, 14, 0, Math.PI * 2);
