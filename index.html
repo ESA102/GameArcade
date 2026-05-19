@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey MapTap - 81 Cities</title>
+    <title>Turkey MapTap - 5 Cities Challenge</title>
     <style>
         * { user-select: none; box-sizing: border-box; }
         body {
@@ -78,6 +78,23 @@
         .close { background: #c9a13b; }
         .far { background: #8b6c3c; }
         .miss { background: #8b3c2c; }
+        .feedback { font-size: 0.9rem; margin-top: 8px; text-align: center; }
+        .progress {
+            text-align: center;
+            font-size: 1rem;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #2c2b28;
+        }
+        .final-score {
+            text-align: center;
+            font-size: 1.3rem;
+            margin-top: 15px;
+            padding: 15px;
+            background: #2c2b28;
+            border-radius: 20px;
+            color: #ffd966;
+        }
         button {
             background: #d9a13b;
             border: none;
@@ -90,13 +107,6 @@
             margin-top: 10px;
         }
         button:active { transform: scale(0.98); }
-        .feedback { font-size: 0.9rem; margin-top: 8px; text-align: center; }
-        .remaining {
-            text-align: center;
-            font-size: 0.8rem;
-            margin-top: 8px;
-            color: #6b4c2c;
-        }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
@@ -106,7 +116,7 @@
 <body>
 <div class="game">
     <div class="header">
-        <div class="score-box">🏆 SCORE: <span id="score">0</span></div>
+        <div class="score-box">🏆 SCORE: <span id="score">0</span> / 1000</div>
         <div class="target">🎯 FIND: <span class="city-name" id="targetCity">Loading...</span></div>
     </div>
     
@@ -116,8 +126,9 @@
     
     <div class="message" id="message">📍 CLICK ON THE MAP where you think the city is located</div>
     <div class="feedback" id="feedback"></div>
-    <div class="remaining" id="remaining"></div>
-    <button id="nextBtn">🎲 NEXT CITY</button>
+    <div class="progress" id="progress">Question 1 of 5</div>
+    
+    <button id="resetBtn">🔄 PLAY AGAIN</button>
 </div>
 
 <script>
@@ -166,7 +177,7 @@
         return R * c;
     }
     
-    // ALL 81 Turkish provinces with accurate lat/lon coordinates
+    // ALL 81 Turkish provinces
     const allCities = [
         { name: "Adana", lat: 36.9919, lon: 35.3308 },
         { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
@@ -260,7 +271,15 @@
         y: latToY(city.lat)
     }));
     
-    // Shuffle function for random order
+    // Game state
+    let currentRound = [];
+    let currentQuestionIndex = 0;
+    let currentCity = null;
+    let totalScore = 0;
+    let canClick = true;
+    let mapLoaded = false;
+    let gameActive = true;
+    
     function shuffleArray(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -269,31 +288,10 @@
         return arr;
     }
     
-    // Create a shuffled queue of all cities
-    let cityQueue = [];
-    let currentCity = null;
-    let score = 0;
-    let canClick = true;
-    let mapLoaded = false;
-    
-    function refillQueue() {
-        // Create a fresh shuffled copy of all cities
-        cityQueue = shuffleArray([...cities]);
-        updateRemainingDisplay();
-    }
-    
-    function updateRemainingDisplay() {
-        const remaining = document.getElementById('remaining');
-        if (remaining) {
-            remaining.innerHTML = `📋 ${cityQueue.length} cities remaining in this round | ${81 - cityQueue.length} completed`;
-        }
-    }
-    
-    function getNextCity() {
-        if (cityQueue.length === 0) {
-            refillQueue();
-        }
-        return cityQueue.shift();
+    function selectRandomCities() {
+        // Pick 5 random different cities from the 81
+        const shuffled = shuffleArray([...cities]);
+        return shuffled.slice(0, 5);
     }
     
     function drawMap(clickX = null, clickY = null) {
@@ -325,16 +323,69 @@
         document.getElementById('message').style.background = "#8b3c2c";
     };
     
-    function calculateScore(distanceKm) {
-        if (distanceKm < 30) return { points: 100, grade: "perfect", text: "🎯 PERFECT! 100 points!", km: Math.round(distanceKm) };
-        if (distanceKm < 80) return { points: 70, grade: "good", text: "👍 GOOD! 70 points", km: Math.round(distanceKm) };
-        if (distanceKm < 150) return { points: 40, grade: "close", text: "📌 CLOSE! 40 points", km: Math.round(distanceKm) };
-        if (distanceKm < 250) return { points: 20, grade: "far", text: "🔍 FAR! 20 points", km: Math.round(distanceKm) };
-        return { points: 0, grade: "miss", text: "❌ MISS! 0 points", km: Math.round(distanceKm) };
+    function calculatePoints(distanceKm) {
+        // Max 200 points per question, out of 1000 total
+        if (distanceKm < 20) return 200;
+        if (distanceKm < 50) return 180;
+        if (distanceKm < 80) return 150;
+        if (distanceKm < 120) return 120;
+        if (distanceKm < 160) return 90;
+        if (distanceKm < 200) return 60;
+        if (distanceKm < 250) return 40;
+        if (distanceKm < 300) return 20;
+        return 0;
+    }
+    
+    function getGradeText(distanceKm) {
+        if (distanceKm < 20) return "🎯 PERFECT!";
+        if (distanceKm < 50) return "👍 EXCELLENT!";
+        if (distanceKm < 80) return "✅ VERY GOOD!";
+        if (distanceKm < 120) return "📌 GOOD!";
+        if (distanceKm < 160) return "🔍 NOT BAD";
+        if (distanceKm < 200) return "📏 CLOSE";
+        if (distanceKm < 250) return "📍 FAR";
+        if (distanceKm < 300) return "⚠️ VERY FAR";
+        return "❌ MISS";
+    }
+    
+    function endGame() {
+        gameActive = false;
+        const messageDiv = document.getElementById('message');
+        messageDiv.className = "message";
+        messageDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>Final Score: ${totalScore} / 1000`;
+        
+        document.getElementById('feedback').innerHTML = "";
+        document.getElementById('progress').innerHTML = `Game finished! Click "PLAY AGAIN" to start a new round`;
+        
+        // Show final score in a special div
+        let finalDiv = document.getElementById('finalScore');
+        if (!finalDiv) {
+            finalDiv = document.createElement('div');
+            finalDiv.id = 'finalScore';
+            finalDiv.className = 'final-score';
+            document.querySelector('.game').appendChild(finalDiv);
+        }
+        finalDiv.innerHTML = `🏆 FINAL SCORE: ${totalScore} / 1000 🏆`;
+    }
+    
+    function loadNextQuestion() {
+        if (currentQuestionIndex >= currentRound.length) {
+            endGame();
+            return;
+        }
+        
+        currentCity = currentRound[currentQuestionIndex];
+        document.getElementById('targetCity').innerText = currentCity.name;
+        document.getElementById('progress').innerHTML = `Question ${currentQuestionIndex + 1} of ${currentRound.length}`;
+        document.getElementById('message').className = "message";
+        document.getElementById('message').innerHTML = "📍 CLICK ON THE MAP where you think the city is located";
+        document.getElementById('feedback').innerHTML = "";
+        drawMap();
+        canClick = true;
     }
     
     function handleCanvasClick(e) {
-        if (!canClick || !currentCity || !mapLoaded) return;
+        if (!gameActive || !canClick || !currentCity || !mapLoaded) return;
         
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -349,45 +400,59 @@
             currentCity.lat, currentCity.lon
         );
         
-        const result = calculateScore(distanceKm);
+        const points = calculatePoints(distanceKm);
+        totalScore += points;
+        const gradeText = getGradeText(distanceKm);
         
-        score += result.points;
-        document.getElementById('score').innerText = score;
+        document.getElementById('score').innerText = totalScore;
         
         const messageDiv = document.getElementById('message');
-        messageDiv.className = `message ${result.grade}`;
-        messageDiv.innerHTML = `${result.text} (${result.km} km from ${currentCity.name})`;
+        messageDiv.className = "message";
+        let gradeClass = "miss";
+        if (distanceKm < 20) gradeClass = "perfect";
+        else if (distanceKm < 50) gradeClass = "perfect";
+        else if (distanceKm < 80) gradeClass = "good";
+        else if (distanceKm < 120) gradeClass = "good";
+        else if (distanceKm < 160) gradeClass = "close";
+        else if (distanceKm < 200) gradeClass = "close";
+        else if (distanceKm < 250) gradeClass = "far";
+        else if (distanceKm < 300) gradeClass = "far";
+        messageDiv.classList.add(gradeClass);
+        messageDiv.innerHTML = `${gradeText}<br>${Math.round(distanceKm)} km from ${currentCity.name}<br>+${points} points!`;
         
-        document.getElementById('feedback').innerHTML = `📍 You clicked ${result.km} km away from ${currentCity.name}`;
+        document.getElementById('feedback').innerHTML = `📍 You clicked ${Math.round(distanceKm)} km away`;
         
         drawMap(clickX, clickY);
         
         canClick = false;
-        setTimeout(() => {
-            canClick = true;
-        }, 1500);
-    }
-    
-    function nextCity() {
-        if (!canClick) return;
         
-        currentCity = getNextCity();
-        document.getElementById('targetCity').innerText = currentCity.name;
-        document.getElementById('message').className = "message";
-        document.getElementById('message').innerHTML = "📍 CLICK ON THE MAP where you think the city is located";
-        document.getElementById('feedback').innerHTML = "";
-        updateRemainingDisplay();
-        drawMap();
-        canClick = true;
+        // Move to next question after 2 seconds
+        setTimeout(() => {
+            currentQuestionIndex++;
+            loadNextQuestion();
+        }, 2000);
     }
     
-    // Initialize the game
-    refillQueue();
-    currentCity = getNextCity();
-    document.getElementById('targetCity').innerText = currentCity.name;
+    function resetGame() {
+        gameActive = true;
+        totalScore = 0;
+        currentQuestionIndex = 0;
+        document.getElementById('score').innerText = "0";
+        
+        // Remove final score div if exists
+        const finalDiv = document.getElementById('finalScore');
+        if (finalDiv) finalDiv.remove();
+        
+        // Select 5 random cities
+        currentRound = selectRandomCities();
+        loadNextQuestion();
+    }
+    
+    // Initialize
+    resetGame();
     
     canvas.addEventListener('click', handleCanvasClick);
-    document.getElementById('nextBtn').addEventListener('click', nextCity);
+    document.getElementById('resetBtn').addEventListener('click', resetGame);
 </script>
 </body>
 </html>
