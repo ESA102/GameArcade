@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Turkey MapTap - Find cities on map</title>
     <style>
-        * { user-select: none; box-sizing: border-box; }
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
         body {
             background: linear-gradient(145deg, #1a472a, #0e2a1a);
             display: flex;
@@ -52,15 +55,19 @@
             font-weight: bold;
             font-size: 1.8rem;
         }
+        .map-container {
+            position: relative;
+            margin: 15px 0;
+        }
         canvas {
             display: block;
-            margin: 15px auto;
+            margin: 0 auto;
             border-radius: 20px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-            background: #87CEEB;
             cursor: crosshair;
             width: 100%;
             height: auto;
+            background: #87CEEB;
         }
         .message {
             background: #2c2b28;
@@ -86,7 +93,7 @@
             width: 100%;
         }
         button:active { transform: scale(0.98); }
-        .feedback { font-size: 0.9rem; margin-top: 8px; }
+        .feedback { font-size: 0.9rem; margin-top: 8px; text-align: center; }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
@@ -100,7 +107,9 @@
         <div class="target">🎯 FIND: <span class="city-name" id="targetCity">Loading...</span></div>
     </div>
     
-    <canvas id="turkeyCanvas" width="900" height="600"></canvas>
+    <div class="map-container">
+        <canvas id="turkeyCanvas" width="800" height="600"></canvas>
+    </div>
     
     <div class="message" id="message">📍 TAP ON THE MAP where you think the city is located</div>
     <div class="feedback" id="feedback"></div>
@@ -110,108 +119,111 @@
 <script>
     const canvas = document.getElementById('turkeyCanvas');
     const ctx = canvas.getContext('2d');
-    const width = 900, height = 600;
+    const width = 800, height = 600;
     canvas.width = width;
     canvas.height = height;
     
+    // Load the real Turkey map image
+    const mapImage = new Image();
+    mapImage.src = 'turkey-map.png';
+    
+    // City coordinates (adjusted for 800x600 map image)
+    // These are approximate pixel positions on the real Turkey map
     const cities = [
-        { name: "Istanbul", x: 310, y: 210 },
-        { name: "Ankara", x: 410, y: 280 },
-        { name: "Izmir", x: 260, y: 340 },
-        { name: "Bursa", x: 340, y: 250 },
-        { name: "Antalya", x: 440, y: 430 },
-        { name: "Adana", x: 510, y: 420 },
-        { name: "Gaziantep", x: 550, y: 410 },
-        { name: "Konya", x: 430, y: 360 },
-        { name: "Trabzon", x: 590, y: 220 },
-        { name: "Diyarbakır", x: 600, y: 400 },
-        { name: "Mersin", x: 480, y: 440 },
-        { name: "Kayseri", x: 490, y: 330 },
-        { name: "Samsun", x: 520, y: 260 },
-        { name: "Erzurum", x: 660, y: 290 },
-        { name: "Van", x: 710, y: 380 },
-        { name: "Malatya", x: 540, y: 360 },
-        { name: "Denizli", x: 340, y: 390 },
-        { name: "Şanlıurfa", x: 590, y: 430 },
-        { name: "Eskişehir", x: 370, y: 280 },
-        { name: "Edirne", x: 220, y: 200 }
+        { name: "Istanbul", x: 260, y: 195 },
+        { name: "Ankara", x: 370, y: 250 },
+        { name: "Izmir", x: 215, y: 310 },
+        { name: "Bursa", x: 305, y: 230 },
+        { name: "Antalya", x: 400, y: 400 },
+        { name: "Adana", x: 480, y: 390 },
+        { name: "Gaziantep", x: 530, y: 380 },
+        { name: "Konya", x: 390, y: 330 },
+        { name: "Trabzon", x: 570, y: 195 },
+        { name: "Diyarbakır", x: 585, y: 370 },
+        { name: "Mersin", x: 455, y: 410 },
+        { name: "Kayseri", x: 470, y: 300 },
+        { name: "Samsun", x: 510, y: 235 },
+        { name: "Erzurum", x: 650, y: 265 },
+        { name: "Van", x: 710, y: 350 },
+        { name: "Malatya", x: 530, y: 330 },
+        { name: "Denizli", x: 310, y: 360 },
+        { name: "Şanlıurfa", x: 580, y: 400 },
+        { name: "Eskişehir", x: 345, y: 255 },
+        { name: "Edirne", x: 180, y: 180 }
     ];
     
     let currentCity = null;
     let score = 0;
     let canTap = true;
     let usedCities = [];
+    let mapLoaded = false;
     
+    // Draw the map and city markers
     function drawMap(highlightX = null, highlightY = null) {
+        if (!mapLoaded) return;
+        
         ctx.clearRect(0, 0, width, height);
-        ctx.fillStyle = "#87CEEB";
-        ctx.fillRect(0, 0, width, height);
         
-        ctx.beginPath();
-        ctx.moveTo(200, 150);
-        ctx.bezierCurveTo(250, 120, 350, 100, 450, 110);
-        ctx.lineTo(550, 105);
-        ctx.lineTo(650, 120);
-        ctx.lineTo(750, 160);
-        ctx.lineTo(780, 220);
-        ctx.lineTo(770, 300);
-        ctx.lineTo(740, 380);
-        ctx.lineTo(700, 440);
-        ctx.lineTo(640, 480);
-        ctx.lineTo(560, 510);
-        ctx.lineTo(480, 520);
-        ctx.lineTo(400, 510);
-        ctx.lineTo(320, 490);
-        ctx.lineTo(260, 450);
-        ctx.lineTo(210, 400);
-        ctx.lineTo(180, 340);
-        ctx.lineTo(170, 270);
-        ctx.lineTo(180, 200);
-        ctx.lineTo(200, 150);
-        ctx.fillStyle = "#c9b27c";
-        ctx.fill();
-        ctx.strokeStyle = "#5c4727";
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        // Draw the real Turkey map image
+        ctx.drawImage(mapImage, 0, 0, width, height);
         
+        // Draw city dots on top of the map
         for (let city of cities) {
             ctx.beginPath();
-            ctx.arc(city.x, city.y, 5, 0, Math.PI * 2);
+            ctx.arc(city.x, city.y, 6, 0, Math.PI * 2);
             ctx.fillStyle = "#2c2b28";
             ctx.fill();
             ctx.beginPath();
             ctx.arc(city.x, city.y, 3, 0, Math.PI * 2);
             ctx.fillStyle = "#ffaa33";
             ctx.fill();
-            ctx.font = "11px Arial";
-            ctx.fillStyle = "#2c2b28";
-            ctx.fillText(city.name, city.x + 7, city.y - 5);
+            
+            // City label
+            ctx.font = "bold 12px Arial";
+            ctx.fillStyle = "#1a1a1a";
+            ctx.shadowBlur = 3;
+            ctx.shadowColor = "white";
+            ctx.fillText(city.name, city.x + 8, city.y - 5);
+            ctx.shadowBlur = 0;
         }
         
+        // Highlight the target city with a pulsing circle
         if (currentCity) {
             ctx.beginPath();
-            ctx.arc(currentCity.x, currentCity.y, 12, 0, Math.PI * 2);
+            ctx.arc(currentCity.x, currentCity.y, 16, 0, Math.PI * 2);
             ctx.strokeStyle = "#ff3300";
             ctx.lineWidth = 3;
             ctx.stroke();
             ctx.beginPath();
-            ctx.arc(currentCity.x, currentCity.y, 7, 0, Math.PI * 2);
+            ctx.arc(currentCity.x, currentCity.y, 8, 0, Math.PI * 2);
             ctx.fillStyle = "#ff6600";
             ctx.fill();
         }
         
+        // Show where the user clicked
         if (highlightX && highlightY) {
             ctx.beginPath();
-            ctx.arc(highlightX, highlightY, 15, 0, Math.PI * 2);
+            ctx.arc(highlightX, highlightY, 18, 0, Math.PI * 2);
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 3;
             ctx.stroke();
             ctx.beginPath();
-            ctx.arc(highlightX, highlightY, 8, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255,255,255,0.5)";
+            ctx.arc(highlightX, highlightY, 10, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.4)";
             ctx.fill();
         }
     }
+    
+    mapImage.onload = function() {
+        mapLoaded = true;
+        drawMap();
+    };
+    
+    mapImage.onerror = function() {
+        console.error("Map image failed to load. Make sure turkey-map.png is uploaded.");
+        document.getElementById('message').innerHTML = "⚠️ Map image not found. Please upload turkey-map.png to GitHub.";
+        document.getElementById('message').style.background = "#8b3c2c";
+    };
     
     function getRandomCity() {
         if (usedCities.length === cities.length) usedCities = [];
@@ -237,7 +249,7 @@
     }
     
     function handleCanvasClick(e) {
-        if (!canTap || !currentCity) return;
+        if (!canTap || !currentCity || !mapLoaded) return;
         
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -276,9 +288,9 @@
         canTap = true;
     }
     
+    // Initialize
     currentCity = cities[0];
     document.getElementById('targetCity').innerText = currentCity.name;
-    drawMap();
     
     canvas.addEventListener('click', handleCanvasClick);
     document.getElementById('nextBtn').addEventListener('click', nextCity);
