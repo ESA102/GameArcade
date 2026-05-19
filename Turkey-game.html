@@ -2,34 +2,229 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey Map Game | Find the Province</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="stylesheet" href="css/game.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turkey Province Game</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a472a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .game {
+            background: #f5f2e8;
+            border-radius: 20px;
+            padding: 20px;
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+        }
+        .target {
+            font-size: 28px;
+            font-weight: bold;
+            background: #2c2b28;
+            color: #ffd966;
+            padding: 15px;
+            border-radius: 15px;
+            margin: 15px 0;
+        }
+        .score {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        button {
+            background: #d9a13b;
+            border: none;
+            padding: 10px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .message {
+            background: #3b2a1f;
+            color: white;
+            padding: 10px;
+            border-radius: 30px;
+            margin: 15px 0;
+        }
+        .province-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 8px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .province-btn {
+            background: #6b4c2c;
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            text-align: center;
+        }
+        .province-btn:hover {
+            background: #8b6c3c;
+        }
+        .correct {
+            background: #2f6b3c !important;
+        }
+        .wrong {
+            background: #8b3c2c !important;
+        }
+        @media (max-width: 600px) {
+            .province-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            }
+            .target {
+                font-size: 20px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="game-container">
-        <div class="header">
-            <div class="flex-row">
-                <span class="province-name">🇹🇷 TURKEY</span>
-                <div class="score-box">🏆 <span id="scoreValue">0</span> / <span id="totalProvinces">81</span></div>
-            </div>
-            <button id="resetBtn">🔄 START AGAIN</button>
-        </div>
-        
-        <canvas id="turkeyCanvas" width="800" height="550"></canvas>
-        
-        <div class="message-area" id="gameMessage">
-            ✨ Click on the map to find the target province ✨
-        </div>
-        
-        <div class="info">
-            🎯 Find: <span id="targetProvinceDisplay">Loading...</span>
-        </div>
-        
-        <footer>🗺️ Turkey - 81 Provinces | Click the correct city on the map</footer>
-    </div>
+<div class="game">
+    <h1>🇹🇷 TURKEY PROVINCE GAME 🇹🇷</h1>
+    <div class="score">🏆 SCORE: <span id="score">0</span></div>
+    <div class="target">FIND: <span id="targetProvince">Loading...</span></div>
+    <div class="message" id="message">Click the correct province!</div>
+    <div class="province-grid" id="provinceGrid"></div>
+    <button id="resetBtn">START AGAIN</button>
+</div>
 
-    <script src="js/game.js"></script>
+<script>
+    // All 81 Turkish provinces
+    const provinces = [
+        "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Amasya", "Ankara", "Antalya", "Artvin", "Aydın", "Balıkesir",
+        "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli",
+        "Diyarbakır", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkâri",
+        "Hatay", "Isparta", "Mersin", "İstanbul", "İzmir", "Kars", "Kastamonu", "Kayseri", "Kırklareli", "Kırşehir",
+        "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Kahramanmaraş", "Mardin", "Muğla", "Muş", "Nevşehir",
+        "Niğde", "Ordu", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Tekirdağ", "Tokat",
+        "Trabzon", "Tunceli", "Şanlıurfa", "Uşak", "Van", "Yozgat", "Zonguldak", "Aksaray", "Bayburt", "Karaman",
+        "Kırıkkale", "Batman", "Şırnak", "Bartın", "Ardahan", "Iğdır", "Yalova", "Karabük", "Kilis", "Osmaniye", "Düzce"
+    ];
+
+    let currentTarget = "";
+    let score = 0;
+    let selectedProvinces = [];
+
+    function getRandomProvince() {
+        const remaining = provinces.filter(p => !selectedProvinces.includes(p));
+        if (remaining.length === 0) {
+            // Game complete - all provinces found
+            document.getElementById('message').innerHTML = "🎉 CONGRATULATIONS! YOU FOUND ALL 81 PROVINCES! 🎉";
+            document.getElementById('message').style.background = "#2f6b3c";
+            return null;
+        }
+        return remaining[Math.floor(Math.random() * remaining.length)];
+    }
+
+    function updateGame() {
+        document.getElementById('score').innerText = score;
+        if (currentTarget) {
+            document.getElementById('targetProvince').innerText = currentTarget;
+        }
+    }
+
+    function checkProvince(provinceName, element) {
+        if (!currentTarget) return;
+        
+        if (provinceName === currentTarget) {
+            // Correct!
+            score++;
+            selectedProvinces.push(currentTarget);
+            element.classList.add('correct');
+            document.getElementById('message').innerHTML = "✅ CORRECT! +1 point! ✅";
+            document.getElementById('message').style.background = "#2f6b3c";
+            
+            // Get next province
+            const nextTarget = getRandomProvince();
+            if (nextTarget === null) {
+                currentTarget = null;
+                document.getElementById('targetProvince').innerText = "GAME COMPLETE!";
+            } else {
+                currentTarget = nextTarget;
+                document.getElementById('targetProvince').innerText = currentTarget;
+            }
+            updateGame();
+            
+            // Remove highlight after 1 second
+            setTimeout(() => {
+                element.classList.remove('correct');
+                document.getElementById('message').innerHTML = "Click the correct province!";
+                document.getElementById('message').style.background = "#3b2a1f";
+            }, 800);
+        } else {
+            // Wrong!
+            element.classList.add('wrong');
+            document.getElementById('message').innerHTML = `❌ WRONG! That's ${provinceName}. Target: ${currentTarget} ❌`;
+            document.getElementById('message').style.background = "#8b3c2c";
+            
+            setTimeout(() => {
+                element.classList.remove('wrong');
+                document.getElementById('message').innerHTML = "Click the correct province!";
+                document.getElementById('message').style.background = "#3b2a1f";
+            }, 800);
+        }
+    }
+
+    function createProvinceButtons() {
+        const grid = document.getElementById('provinceGrid');
+        grid.innerHTML = '';
+        
+        // Shuffle provinces for display
+        const shuffled = [...provinces].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach(province => {
+            const btn = document.createElement('div');
+            btn.className = 'province-btn';
+            btn.innerText = province;
+            btn.onclick = () => checkProvince(province, btn);
+            grid.appendChild(btn);
+        });
+    }
+
+    function resetGame() {
+        score = 0;
+        selectedProvinces = [];
+        currentTarget = provinces[Math.floor(Math.random() * provinces.length)];
+        updateGame();
+        document.getElementById('message').innerHTML = "Game reset! Find the target province!";
+        document.getElementById('message').style.background = "#3b2a1f";
+        
+        // Reset all buttons
+        const allButtons = document.querySelectorAll('.province-btn');
+        allButtons.forEach(btn => {
+            btn.classList.remove('correct', 'wrong');
+        });
+    }
+
+    // Initialize game
+    function init() {
+        createProvinceButtons();
+        resetGame();
+        document.getElementById('resetBtn').onclick = () => {
+            createProvinceButtons(); // Refresh buttons
+            resetGame();
+        };
+    }
+
+    init();
+</script>
 </body>
 </html>
