@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey MapTap - 81 Cities Challenge</title>
+    <title>Turkey MapTap - Find the City</title>
     <style>
         * { user-select: none; box-sizing: border-box; }
         body {
@@ -86,12 +86,6 @@
         button:active { transform: scale(0.97); }
         #nextBtn { background: #2f6b3c; color: white; }
         #resetBtn { background: #8b6c3c; color: white; }
-        .instruction {
-            text-align: center;
-            font-size: 0.9rem;
-            color: #6b4c2c;
-            margin-top: 5px;
-        }
         .message {
             padding: 12px;
             border-radius: 50px;
@@ -148,10 +142,15 @@
             gap: 12px;
         }
         .points-breakdown span { color: white; }
+        .instruction {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6b4c2c;
+            margin-top: 5px;
+        }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
-            .points-breakdown { font-size: 0.7rem; gap: 8px; }
             button { padding: 8px 16px; min-width: 120px; font-size: 0.9rem; }
         }
     </style>
@@ -191,152 +190,50 @@
 <script>
     const canvas = document.getElementById('turkeyCanvas');
     const ctx = canvas.getContext('2d');
-    
     canvas.width = 1024;
     canvas.height = 500;
     
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // CORRECT Turkey geographic bounds from Wikipedia Location Map module
-    const TURKEY_NORTH = 42.5;
-    const TURKEY_SOUTH = 35.5;
-    const TURKEY_WEST = 25.4;
-    const TURKEY_EAST = 45.0;
-    
-    const CANVAS_WIDTH = 1024;
-    const CANVAS_HEIGHT = 500;
-    
-    function latToY(lat) {
-        return ((TURKEY_NORTH - lat) / (TURKEY_NORTH - TURKEY_SOUTH)) * CANVAS_HEIGHT;
-    }
-    
-    function lonToX(lon) {
-        return ((lon - TURKEY_WEST) / (TURKEY_EAST - TURKEY_WEST)) * CANVAS_WIDTH;
-    }
-    
-    function pixelToLatLon(x, y) {
-        return {
-            lon: TURKEY_WEST + (x / CANVAS_WIDTH) * (TURKEY_EAST - TURKEY_WEST),
-            lat: TURKEY_NORTH - (y / CANVAS_HEIGHT) * (TURKEY_NORTH - TURKEY_SOUTH)
-        };
-    }
-    
-    function haversineDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2)**2;
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
-    
-    // ACCURATE coordinates for all 81 provinces from official geographic data
-    const allCities = [
-        { name: "Adana", lat: 36.9919, lon: 35.3308 },
-        { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
-        { name: "Afyonkarahisar", lat: 38.7584, lon: 30.5383 },
-        { name: "Ağrı", lat: 39.7195, lon: 43.0505 },
-        { name: "Aksaray", lat: 38.3747, lon: 34.0289 },
-        { name: "Amasya", lat: 40.6517, lon: 35.8336 },
-        { name: "Ankara", lat: 39.9208, lon: 32.8541 },
-        { name: "Antalya", lat: 36.8969, lon: 30.7133 },
-        { name: "Ardahan", lat: 41.1105, lon: 42.7022 },
-        { name: "Artvin", lat: 41.1825, lon: 41.8189 },
-        { name: "Aydın", lat: 37.8416, lon: 27.8456 },
-        { name: "Balıkesir", lat: 39.6484, lon: 27.8826 },
-        { name: "Bartın", lat: 41.6355, lon: 32.3362 },
-        { name: "Batman", lat: 37.8812, lon: 41.1351 },
-        { name: "Bayburt", lat: 40.2554, lon: 40.2231 },
-        { name: "Bilecik", lat: 40.1431, lon: 29.9794 },
-        { name: "Bingöl", lat: 38.8863, lon: 40.4987 },
-        { name: "Bitlis", lat: 38.4000, lon: 42.1083 },
-        { name: "Bolu", lat: 40.7356, lon: 31.6086 },
-        { name: "Burdur", lat: 37.7203, lon: 30.2908 },
-        { name: "Bursa", lat: 40.1826, lon: 29.0665 },
-        { name: "Çanakkale", lat: 40.1553, lon: 26.4142 },
-        { name: "Çankırı", lat: 40.6000, lon: 33.6167 },
-        { name: "Çorum", lat: 40.5455, lon: 34.9570 },
-        { name: "Denizli", lat: 37.7735, lon: 29.0865 },
-        { name: "Diyarbakır", lat: 37.9144, lon: 40.2306 },
-        { name: "Düzce", lat: 40.8389, lon: 31.1656 },
-        { name: "Edirne", lat: 41.6771, lon: 26.5557 },
-        { name: "Elazığ", lat: 38.6811, lon: 39.2256 },
-        { name: "Erzincan", lat: 39.7464, lon: 39.4925 },
-        { name: "Erzurum", lat: 39.9051, lon: 41.2709 },
-        { name: "Eskişehir", lat: 39.7700, lon: 30.5025 },
-        { name: "Gaziantep", lat: 37.0662, lon: 37.3833 },
-        { name: "Giresun", lat: 40.9128, lon: 38.3894 },
-        { name: "Gümüşhane", lat: 40.4603, lon: 39.4769 },
-        { name: "Hakkâri", lat: 37.5747, lon: 43.7408 },
-        { name: "Hatay", lat: 36.4018, lon: 36.3498 },
-        { name: "Iğdır", lat: 39.9200, lon: 44.0440 },
-        { name: "Isparta", lat: 37.7644, lon: 30.5564 },
-        { name: "İstanbul", lat: 41.0082, lon: 28.9784 },
-        { name: "İzmir", lat: 38.4189, lon: 27.1287 },
-        { name: "Kahramanmaraş", lat: 37.5875, lon: 36.9317 },
-        { name: "Karabük", lat: 41.2061, lon: 32.6194 },
-        { name: "Karaman", lat: 37.1811, lon: 33.2150 },
-        { name: "Kars", lat: 40.6017, lon: 43.0975 },
-        { name: "Kastamonu", lat: 41.3887, lon: 33.7825 },
-        { name: "Kayseri", lat: 38.7239, lon: 35.4801 },
-        { name: "Kırıkkale", lat: 39.8468, lon: 33.5153 },
-        { name: "Kırklareli", lat: 41.7358, lon: 27.2252 },
-        { name: "Kırşehir", lat: 39.1464, lon: 34.1597 },
-        { name: "Kilis", lat: 36.7167, lon: 37.1167 },
-        { name: "Kocaeli", lat: 40.7655, lon: 29.9408 },
-        { name: "Konya", lat: 37.8704, lon: 32.5110 },
-        { name: "Kütahya", lat: 39.4217, lon: 29.9879 },
-        { name: "Malatya", lat: 38.3552, lon: 38.3095 },
-        { name: "Manisa", lat: 38.6133, lon: 27.4250 },
-        { name: "Mardin", lat: 37.3132, lon: 40.7351 },
-        { name: "Mersin", lat: 36.8000, lon: 34.6333 },
-        { name: "Muğla", lat: 37.2153, lon: 28.3636 },
-        { name: "Muş", lat: 38.7347, lon: 41.4911 },
-        { name: "Nevşehir", lat: 38.6250, lon: 34.7167 },
-        { name: "Niğde", lat: 37.9667, lon: 34.6833 },
-        { name: "Ordu", lat: 40.9839, lon: 37.8764 },
-        { name: "Osmaniye", lat: 37.0750, lon: 36.2500 },
-        { name: "Rize", lat: 41.0208, lon: 40.5219 },
-        { name: "Sakarya", lat: 40.7732, lon: 30.3947 },
-        { name: "Samsun", lat: 41.2871, lon: 36.3234 },
-        { name: "Siirt", lat: 37.9311, lon: 41.9453 },
-        { name: "Sinop", lat: 42.0239, lon: 35.1531 },
-        { name: "Sivas", lat: 39.7515, lon: 37.0172 },
-        { name: "Şanlıurfa", lat: 37.1591, lon: 38.7969 },
-        { name: "Şırnak", lat: 37.5163, lon: 42.4610 },
-        { name: "Tekirdağ", lat: 40.9789, lon: 27.5106 },
-        { name: "Tokat", lat: 40.3139, lon: 36.5544 },
-        { name: "Trabzon", lat: 41.0061, lon: 39.7191 },
-        { name: "Tunceli", lat: 39.1075, lon: 39.5489 },
-        { name: "Uşak", lat: 38.6775, lon: 29.4058 },
-        { name: "Van", lat: 38.5012, lon: 43.3730 },
-        { name: "Yalova", lat: 40.6550, lon: 29.2775 },
-        { name: "Yozgat", lat: 39.8200, lon: 34.8094 },
-        { name: "Zonguldak", lat: 41.4564, lon: 31.7975 }
+    // City pixel positions - YOU CAN ADJUST THESE!
+    // If a city appears in the sea, increase its Y value (move it DOWN)
+    const cities = [
+        { name: "Istanbul", x: 330, y: 180 },
+        { name: "Ankara", x: 460, y: 240 },
+        { name: "Izmir", x: 280, y: 300 },
+        { name: "Bursa", x: 380, y: 220 },
+        { name: "Antalya", x: 460, y: 390 },
+        { name: "Adana", x: 540, y: 380 },
+        { name: "Gaziantep", x: 600, y: 370 },
+        { name: "Konya", x: 480, y: 320 },
+        { name: "Trabzon", x: 690, y: 190 },
+        { name: "Diyarbakır", x: 680, y: 350 },
+        { name: "Mersin", x: 520, y: 400 },
+        { name: "Kayseri", x: 560, y: 280 },
+        { name: "Samsun", x: 620, y: 220 },
+        { name: "Erzurum", x: 760, y: 250 },
+        { name: "Van", x: 830, y: 330 },
+        { name: "Malatya", x: 630, y: 310 },
+        { name: "Denizli", x: 380, y: 350 },
+        { name: "Şanlıurfa", x: 650, y: 380 },
+        { name: "Eskişehir", x: 420, y: 240 },
+        { name: "Edirne", x: 230, y: 170 }
     ];
     
-    const cities = allCities.map(city => ({
-        name: city.name,
-        lat: city.lat,
-        lon: city.lon,
-        x: lonToX(city.lon),
-        y: latToY(city.lat)
-    }));
+    // Add all other cities here if needed
     
     let currentRound = [];
-    let currentQuestionIndex = 0;
+    let currentIndex = 0;
     let currentCity = null;
     let totalScore = 0;
     let canClick = true;
     let mapLoaded = false;
     let gameActive = true;
-    let hasAnsweredCurrent = false;
-    
+    let answered = false;
     let showMarkers = false;
-    let clickXMarker = null;
-    let clickYMarker = null;
-    let correctXMarker = null;
-    let correctYMarker = null;
+    let clickPos = null;
+    let correctPos = null;
     
     function shuffleArray(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
@@ -347,44 +244,45 @@
     }
     
     function selectRandomCities() {
-        const shuffled = shuffleArray([...cities]);
-        return shuffled.slice(0, 5);
+        return shuffleArray([...cities]).slice(0, 5);
     }
     
     function drawMap() {
         if (!mapLoaded) return;
-        
-        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        ctx.drawImage(mapImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.clearRect(0, 0, 1024, 500);
+        ctx.drawImage(mapImage, 0, 0, 1024, 500);
         
         if (showMarkers) {
-            if (clickXMarker && clickYMarker) {
+            // White circle - your click
+            if (clickPos) {
                 ctx.beginPath();
-                ctx.arc(clickXMarker, clickYMarker, 12, 0, Math.PI * 2);
+                ctx.arc(clickPos.x, clickPos.y, 12, 0, Math.PI * 2);
                 ctx.fillStyle = "white";
                 ctx.fill();
                 ctx.beginPath();
-                ctx.arc(clickXMarker, clickYMarker, 12, 0, Math.PI * 2);
+                ctx.arc(clickPos.x, clickPos.y, 12, 0, Math.PI * 2);
                 ctx.strokeStyle = "black";
                 ctx.lineWidth = 2;
                 ctx.stroke();
             }
             
-            if (correctXMarker && correctYMarker) {
+            // Green circle - correct location
+            if (correctPos) {
                 ctx.beginPath();
-                ctx.arc(correctXMarker, correctYMarker, 14, 0, Math.PI * 2);
+                ctx.arc(correctPos.x, correctPos.y, 14, 0, Math.PI * 2);
                 ctx.fillStyle = "#33ff33";
                 ctx.fill();
                 ctx.beginPath();
-                ctx.arc(correctXMarker, correctYMarker, 14, 0, Math.PI * 2);
+                ctx.arc(correctPos.x, correctPos.y, 14, 0, Math.PI * 2);
                 ctx.strokeStyle = "white";
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 
-                if (clickXMarker && clickYMarker) {
+                // Line between click and correct
+                if (clickPos) {
                     ctx.beginPath();
-                    ctx.moveTo(clickXMarker, clickYMarker);
-                    ctx.lineTo(correctXMarker, correctYMarker);
+                    ctx.moveTo(clickPos.x, clickPos.y);
+                    ctx.lineTo(correctPos.x, correctPos.y);
                     ctx.strokeStyle = "#ffaa33";
                     ctx.lineWidth = 2;
                     ctx.setLineDash([8, 6]);
@@ -395,31 +293,26 @@
         }
     }
     
-    mapImage.onload = function() {
-        mapLoaded = true;
-        drawMap();
-    };
+    mapImage.onload = () => { mapLoaded = true; drawMap(); };
+    mapImage.onerror = () => { document.getElementById('message').innerHTML = "⚠️ Upload turkey-map.png to GitHub"; };
     
-    mapImage.onerror = function() {
-        document.getElementById('message').innerHTML = "⚠️ Map image not found! Please upload turkey-map.png";
-        document.getElementById('message').className = "message miss";
-    };
-    
-    function calculatePoints(distanceKm) {
-        if (distanceKm <= 60) return 200;
-        if (distanceKm <= 100) return 160;
-        if (distanceKm <= 150) return 120;
-        if (distanceKm <= 200) return 80;
-        if (distanceKm <= 300) return 40;
+    function calculatePoints(distancePixels) {
+        const km = distancePixels * 4.5;
+        if (km <= 60) return 200;
+        if (km <= 100) return 160;
+        if (km <= 150) return 120;
+        if (km <= 200) return 80;
+        if (km <= 300) return 40;
         return 0;
     }
     
-    function getGradeText(distanceKm) {
-        if (distanceKm <= 60) return "🎯 PERFECT!";
-        if (distanceKm <= 100) return "👍 EXCELLENT!";
-        if (distanceKm <= 150) return "✅ VERY GOOD!";
-        if (distanceKm <= 200) return "📌 GOOD!";
-        if (distanceKm <= 300) return "🔍 NOT BAD";
+    function getGrade(distancePixels) {
+        const km = distancePixels * 4.5;
+        if (km <= 60) return "🎯 PERFECT!";
+        if (km <= 100) return "👍 EXCELLENT!";
+        if (km <= 150) return "✅ VERY GOOD!";
+        if (km <= 200) return "📌 GOOD!";
+        if (km <= 300) return "🔍 NOT BAD";
         return "❌ MISS";
     }
     
@@ -427,10 +320,7 @@
         gameActive = false;
         document.getElementById('message').className = "message game-complete";
         document.getElementById('message').innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
-        document.getElementById('feedback').innerHTML = "";
-        document.getElementById('progress').innerHTML = `🏁 Game finished! Click "PLAY AGAIN" for a new round 🏁`;
         document.getElementById('nextBtn').style.display = "none";
-        
         let finalDiv = document.getElementById('finalScore');
         if (!finalDiv) {
             finalDiv = document.createElement('div');
@@ -441,112 +331,82 @@
         finalDiv.innerHTML = `🏆 FINAL SCORE: ${totalScore} / 1000 🏆`;
     }
     
-    function loadNextQuestion() {
-        if (currentQuestionIndex >= currentRound.length) {
-            endGame();
-            return;
-        }
-        
-        hasAnsweredCurrent = false;
+    function loadNext() {
+        if (currentIndex >= currentRound.length) { endGame(); return; }
+        answered = false;
         showMarkers = false;
-        clickXMarker = null;
-        clickYMarker = null;
-        correctXMarker = null;
-        correctYMarker = null;
-        
-        currentCity = currentRound[currentQuestionIndex];
+        clickPos = null;
+        correctPos = null;
+        currentCity = currentRound[currentIndex];
         document.getElementById('targetCity').innerText = currentCity.name;
-        document.getElementById('progress').innerHTML = `📍 Question ${currentQuestionIndex + 1} of ${currentRound.length}`;
+        document.getElementById('progress').innerHTML = `📍 Question ${currentIndex + 1} of ${currentRound.length}`;
         document.getElementById('message').className = "message message-info";
-        document.getElementById('message').innerHTML = "Ready! Click on the map to find this city";
+        document.getElementById('message').innerHTML = "📍 CLICK ON THE MAP";
         document.getElementById('feedback').innerHTML = "";
         drawMap();
         canClick = true;
         document.getElementById('nextBtn').style.display = "block";
     }
     
-    function handleCanvasClick(e) {
-        if (!gameActive || !canClick || !currentCity || !mapLoaded || hasAnsweredCurrent) return;
-        
+    function handleClick(e) {
+        if (!gameActive || !canClick || !currentCity || !mapLoaded || answered) return;
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
+        const scaleX = 1024 / rect.width;
+        const scaleY = 500 / rect.height;
+        const userX = (e.clientX - rect.left) * scaleX;
+        const userY = (e.clientY - rect.top) * scaleY;
         
-        const clickX = (e.clientX - rect.left) * scaleX;
-        const clickY = (e.clientY - rect.top) * scaleY;
-        
-        const clickLatLon = pixelToLatLon(clickX, clickY);
-        const distanceKm = haversineDistance(
-            clickLatLon.lat, clickLatLon.lon,
-            currentCity.lat, currentCity.lon
-        );
-        
-        const points = calculatePoints(distanceKm);
+        const dx = userX - currentCity.x;
+        const dy = userY - currentCity.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const points = calculatePoints(dist);
         totalScore += points;
-        const gradeText = getGradeText(distanceKm);
         
         document.getElementById('score').innerText = totalScore;
-        
-        const messageDiv = document.getElementById('message');
+        const msgDiv = document.getElementById('message');
         let gradeClass = "miss";
-        if (distanceKm <= 60) gradeClass = "perfect";
-        else if (distanceKm <= 100) gradeClass = "perfect";
-        else if (distanceKm <= 150) gradeClass = "good";
-        else if (distanceKm <= 200) gradeClass = "good";
-        else if (distanceKm <= 300) gradeClass = "close";
-        
-        messageDiv.className = `message ${gradeClass}`;
-        messageDiv.innerHTML = `${gradeText}<br>📍 ${Math.round(distanceKm)} km from ${currentCity.name}<br>⭐ +${points} points!`;
-        
-        document.getElementById('feedback').innerHTML = `You clicked ${Math.round(distanceKm)} km away from ${currentCity.name}`;
+        const km = dist * 4.5;
+        if (km <= 60) gradeClass = "perfect";
+        else if (km <= 150) gradeClass = "good";
+        else if (km <= 300) gradeClass = "close";
+        msgDiv.className = `message ${gradeClass}`;
+        msgDiv.innerHTML = `${getGrade(dist)}<br>📍 ${Math.round(km)} km from ${currentCity.name}<br>⭐ +${points} pts`;
+        document.getElementById('feedback').innerHTML = `You clicked ${Math.round(km)} km away`;
         
         showMarkers = true;
-        clickXMarker = clickX;
-        clickYMarker = clickY;
-        correctXMarker = currentCity.x;
-        correctYMarker = currentCity.y;
+        clickPos = { x: userX, y: userY };
+        correctPos = { x: currentCity.x, y: currentCity.y };
         drawMap();
-        
-        hasAnsweredCurrent = true;
+        answered = true;
         canClick = false;
     }
     
     function nextCity() {
         if (!gameActive) return;
-        if (!hasAnsweredCurrent) {
-            document.getElementById('message').innerHTML = "⚠️ Please click on the map to answer first!";
-            document.getElementById('message').className = "message miss";
-            setTimeout(() => {
-                if (gameActive && !hasAnsweredCurrent) {
-                    document.getElementById('message').className = "message message-info";
-                    document.getElementById('message').innerHTML = "Ready! Click on the map to find this city";
-                }
-            }, 1500);
+        if (!answered) {
+            document.getElementById('message').innerHTML = "⚠️ Click on the map first!";
             return;
         }
-        currentQuestionIndex++;
-        loadNextQuestion();
+        currentIndex++;
+        loadNext();
     }
     
     function resetGame() {
         gameActive = true;
         totalScore = 0;
-        currentQuestionIndex = 0;
-        hasAnsweredCurrent = false;
+        currentIndex = 0;
+        answered = false;
         showMarkers = false;
         document.getElementById('score').innerText = "0";
         document.getElementById('nextBtn').style.display = "block";
-        
         const finalDiv = document.getElementById('finalScore');
         if (finalDiv) finalDiv.remove();
-        
         currentRound = selectRandomCities();
-        loadNextQuestion();
+        loadNext();
     }
     
     resetGame();
-    
-    canvas.addEventListener('click', handleCanvasClick);
+    canvas.addEventListener('click', handleClick);
     document.getElementById('resetBtn').addEventListener('click', resetGame);
     document.getElementById('nextBtn').addEventListener('click', nextCity);
 </script>
