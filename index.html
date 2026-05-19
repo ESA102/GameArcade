@@ -1,194 +1,61 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey Map - Test</title>
+    <title>TEST - Show Green Dot</title>
     <style>
-        body {
-            background: #1a472a;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-        }
-        .game {
-            background: #f5f2e8;
-            border-radius: 30px;
-            padding: 20px;
-            max-width: 1100px;
-            width: 100%;
-            text-align: center;
-        }
-        canvas {
-            display: block;
-            margin: 0 auto;
-            border-radius: 20px;
-            cursor: crosshair;
-            background: #87CEEB;
-            max-width: 100%;
-            height: auto;
-            border: 2px solid #c9b27c;
-        }
-        .target {
-            font-size: 24px;
-            background: #3b2a1f;
-            padding: 10px;
-            border-radius: 50px;
-            color: #ffaa33;
-            margin: 15px 0;
-        }
-        .message {
-            background: #2c2b28;
-            padding: 10px;
-            border-radius: 50px;
-            color: white;
-            margin: 10px 0;
-        }
-        button {
-            background: #d9a13b;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 30px;
-            cursor: pointer;
-            margin-top: 15px;
-        }
+        body { background: #1a472a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        canvas { border: 5px solid white; background: #c9b27c; cursor: crosshair; }
     </style>
 </head>
 <body>
-<div class="game">
-    <h2>🇹🇷 TURKEY MAP</h2>
-    <div class="target">🎯 FIND: <span id="targetCity">Loading...</span></div>
-    <canvas id="turkeyCanvas" width="1024" height="500"></canvas>
-    <div class="message" id="message">Click on the map to find the city</div>
-    <button id="resetBtn">New City</button>
-</div>
+<canvas id="myCanvas" width="800" height="500"></canvas>
 
 <script>
-    const canvas = document.getElementById('turkeyCanvas');
+    const canvas = document.getElementById('myCanvas');
     const ctx = canvas.getContext('2d');
-    canvas.width = 1024;
-    canvas.height = 500;
     
-    const mapImage = new Image();
-    mapImage.src = 'turkey-map.png';
+    // Draw a simple map (gray shape)
+    ctx.fillStyle = "#c9b27c";
+    ctx.fillRect(0, 0, 800, 500);
     
-    const TURKEY_NORTH = 42.106;
-    const TURKEY_SOUTH = 35.813;
-    const TURKEY_WEST = 25.666;
-    const TURKEY_EAST = 44.818;
+    // Draw a red dot at position 400, 250 (center)
+    ctx.beginPath();
+    ctx.arc(400, 250, 15, 0, Math.PI * 2);
+    ctx.fillStyle = "red";
+    ctx.fill();
+    ctx.fillStyle = "white";
+    ctx.font = "bold 16px Arial";
+    ctx.fillText("CORRECT LOCATION (RED DOT)", 400, 220);
     
-    function latToY(lat) {
-        return ((TURKEY_NORTH - lat) / (TURKEY_NORTH - TURKEY_SOUTH)) * 500;
-    }
-    
-    function lonToX(lon) {
-        return ((lon - TURKEY_WEST) / (TURKEY_EAST - TURKEY_WEST)) * 1024;
-    }
-    
-    const allCities = [
-        { name: "Istanbul", lat: 41.0082, lon: 28.9784 },
-        { name: "Ankara", lat: 39.9208, lon: 32.8541 },
-        { name: "Izmir", lat: 38.4189, lon: 27.1287 },
-        { name: "Antalya", lat: 36.8969, lon: 30.7133 },
-        { name: "Adana", lat: 36.9919, lon: 35.3308 },
-        { name: "Bursa", lat: 40.1826, lon: 29.0665 },
-        { name: "Gaziantep", lat: 37.0662, lon: 37.3833 },
-        { name: "Konya", lat: 37.8704, lon: 32.5110 },
-        { name: "Trabzon", lat: 41.0061, lon: 39.7191 },
-        { name: "Diyarbakır", lat: 37.9144, lon: 40.2306 }
-    ];
-    
-    const cities = allCities.map(city => ({
-        name: city.name,
-        x: lonToX(city.lon),
-        y: latToY(city.lat)
-    }));
-    
-    let currentCity = cities[0];
-    let mapLoaded = false;
-    let showCorrectMarker = false;
-    let correctX = null;
-    let correctY = null;
-    
-    function drawMap() {
-        if (!mapLoaded) return;
-        
-        ctx.clearRect(0, 0, 1024, 500);
-        ctx.drawImage(mapImage, 0, 0, 1024, 500);
-        
-        // Show correct location marker (GREEN)
-        if (showCorrectMarker && correctX && correctY) {
-            ctx.beginPath();
-            ctx.arc(correctX, correctY, 16, 0, Math.PI * 2);
-            ctx.strokeStyle = "#00ff00";
-            ctx.lineWidth = 4;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(correctX, correctY, 8, 0, Math.PI * 2);
-            ctx.fillStyle = "#33ff33";
-            ctx.fill();
-            ctx.font = "bold 14px Arial";
-            ctx.fillStyle = "#00ff00";
-            ctx.shadowBlur = 3;
-            ctx.shadowColor = "black";
-            ctx.fillText("✅ CORRECT: " + currentCity.name, correctX + 12, correctY - 8);
-            ctx.shadowBlur = 0;
-        }
-    }
-    
-    mapImage.onload = function() {
-        mapLoaded = true;
-        drawMap();
-    };
-    
-    mapImage.onerror = function() {
-        document.getElementById('message').innerHTML = "Map image not found! Please upload turkey-map.png";
-    };
-    
-    function handleCanvasClick(e) {
+    // When you click ANYWHERE, a GREEN dot appears at the SAME red dot location
+    canvas.addEventListener('click', function(e) {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const clickX = (e.clientX - rect.left) * scaleX;
-        const clickY = (e.clientY - rect.top) * scaleY;
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
         
-        // Calculate distance
-        const dx = clickX - currentCity.x;
-        const dy = clickY - currentCity.y;
-        const distancePixels = Math.sqrt(dx * dx + dy * dy);
-        const distanceKm = Math.round(distancePixels * 5);
+        // Draw a green circle at the CORRECT location (400, 250)
+        ctx.beginPath();
+        ctx.arc(400, 250, 20, 0, Math.PI * 2);
+        ctx.fillStyle = "#33ff33";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(400, 250, 20, 0, Math.PI * 2);
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 3;
+        ctx.stroke();
         
-        document.getElementById('message').innerHTML = `You clicked ${distanceKm} km away from ${currentCity.name}`;
+        // Show where you clicked
+        ctx.beginPath();
+        ctx.arc(x, y, 12, 0, Math.PI * 2);
+        ctx.fillStyle = "white";
+        ctx.fill();
         
-        // SHOW THE CORRECT LOCATION ON MAP
-        showCorrectMarker = true;
-        correctX = currentCity.x;
-        correctY = currentCity.y;
-        drawMap();
-    }
-    
-    function resetCity() {
-        const randomIndex = Math.floor(Math.random() * cities.length);
-        currentCity = cities[randomIndex];
-        document.getElementById('targetCity').innerHTML = currentCity.name;
-        showCorrectMarker = false;
-        correctX = null;
-        correctY = null;
-        drawMap();
-        document.getElementById('message').innerHTML = "Click on the map to find the city";
-    }
-    
-    document.getElementById('resetBtn').addEventListener('click', resetCity);
-    canvas.addEventListener('click', handleCanvasClick);
-    
-    // Initialize
-    currentCity = cities[0];
-    document.getElementById('targetCity').innerHTML = currentCity.name;
+        ctx.fillStyle = "black";
+        ctx.font = "14px Arial";
+        ctx.fillText("YOU CLICKED HERE", x + 10, y - 5);
+        ctx.fillStyle = "#33ff33";
+        ctx.fillText("✅ CORRECT LOCATION", 400, 220);
+    });
 </script>
 </body>
 </html>
