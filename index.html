@@ -130,9 +130,28 @@
             color: #2c2b28;
         }
         button:active { transform: scale(0.98); }
+        
+        /* Points display styling */
+        .points-breakdown {
+            background: #2c2b28;
+            border-radius: 20px;
+            padding: 10px 15px;
+            margin-top: 10px;
+            color: #ffd966;
+            font-size: 0.85rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+        }
+        .points-breakdown span {
+            color: white;
+        }
+        
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
+            .points-breakdown { font-size: 0.7rem; gap: 8px; }
         }
     </style>
 </head>
@@ -150,6 +169,16 @@
     <div class="message message-info" id="message">📍 CLICK ON THE MAP where you think the city is located</div>
     <div class="feedback" id="feedback"></div>
     <div class="progress" id="progress">Question 1 of 5</div>
+    
+    <!-- Points Breakdown Table -->
+    <div class="points-breakdown" id="pointsBreakdown">
+        <div>🎯 0-60km: <span>200 pts</span></div>
+        <div>👍 61-100km: <span>160 pts</span></div>
+        <div>✅ 101-150km: <span>120 pts</span></div>
+        <div>📌 151-200km: <span>80 pts</span></div>
+        <div>🔍 201-300km: <span>40 pts</span></div>
+        <div>❌ 300km+: <span>0 pts</span></div>
+    </div>
     
     <button id="resetBtn">🔄 PLAY AGAIN</button>
 </div>
@@ -348,11 +377,8 @@
         msgDiv.className = "message miss";
     };
     
-    // NEW SCORING SYSTEM: Full points for clicking within province borders (60km radius)
     function calculatePoints(distanceKm) {
-        // Within province borders (60km radius) = full 200 points
         if (distanceKm <= 60) return 200;
-        // Gradually decreasing points for clicks further away
         if (distanceKm <= 100) return 160;
         if (distanceKm <= 150) return 120;
         if (distanceKm <= 200) return 80;
@@ -360,8 +386,17 @@
         return 0;
     }
     
+    function getPointsBreakdown(distanceKm) {
+        if (distanceKm <= 60) return "0-60km → 200 points";
+        if (distanceKm <= 100) return "61-100km → 160 points";
+        if (distanceKm <= 150) return "101-150km → 120 points";
+        if (distanceKm <= 200) return "151-200km → 80 points";
+        if (distanceKm <= 300) return "201-300km → 40 points";
+        return "300km+ → 0 points";
+    }
+    
     function getGradeText(distanceKm) {
-        if (distanceKm <= 60) return "🎯 PERFECT! (Within Province!)";
+        if (distanceKm <= 60) return "🎯 PERFECT!";
         if (distanceKm <= 100) return "👍 EXCELLENT!";
         if (distanceKm <= 150) return "✅ VERY GOOD!";
         if (distanceKm <= 200) return "📌 GOOD!";
@@ -423,6 +458,7 @@
         );
         
         const points = calculatePoints(distanceKm);
+        const pointsBreakdown = getPointsBreakdown(distanceKm);
         totalScore += points;
         const gradeText = getGradeText(distanceKm);
         
@@ -437,11 +473,11 @@
         else if (distanceKm <= 300) gradeClass = "close";
         
         messageDiv.className = `message ${gradeClass}`;
-        messageDiv.innerHTML = `${gradeText}<br>📍 ${Math.round(distanceKm)} km from ${currentCity.name}<br>⭐ +${points} points!`;
+        messageDiv.innerHTML = `${gradeText}<br>📍 ${Math.round(distanceKm)} km from ${currentCity.name}<br>⭐ +${points} points!<br><span style="font-size:0.85rem;">(${pointsBreakdown})</span>`;
         
-        let feedbackText = `You clicked ${Math.round(distanceKm)} km away from ${currentCity.name}`;
+        let feedbackText = `You clicked ${Math.round(distanceKm)} km away from ${currentCity.name} → ${pointsBreakdown}`;
         if (distanceKm <= 60) {
-            feedbackText += ` 🎉 Perfect! You hit the province!`;
+            feedbackText += ` 🎉 Perfect hit!`;
         }
         document.getElementById('feedback').innerHTML = feedbackText;
         
@@ -455,7 +491,7 @@
         nextQuestionTimeout = setTimeout(() => {
             currentQuestionIndex++;
             loadNextQuestion();
-        }, 2000);
+        }, 2500);
     }
     
     function resetGame() {
