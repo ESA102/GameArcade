@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey MapTap - Tap the correct city on map</title>
+    <title>Turkey MapTap - Find cities on map</title>
     <style>
-        * {
-            user-select: none;
-            box-sizing: border-box;
-        }
+        * { user-select: none; box-sizing: border-box; }
         body {
             background: linear-gradient(145deg, #1a472a, #0e2a1a);
             display: flex;
@@ -55,13 +52,9 @@
             font-weight: bold;
             font-size: 1.8rem;
         }
-        .map-container {
-            position: relative;
-            margin: 15px 0;
-        }
         canvas {
             display: block;
-            margin: 0 auto;
+            margin: 15px auto;
             border-radius: 20px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
             background: #87CEEB;
@@ -90,14 +83,10 @@
             font-weight: bold;
             border-radius: 50px;
             cursor: pointer;
-            margin-top: 10px;
             width: 100%;
         }
         button:active { transform: scale(0.98); }
-        .feedback {
-            font-size: 0.9rem;
-            margin-top: 8px;
-        }
+        .feedback { font-size: 0.9rem; margin-top: 8px; }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
@@ -111,9 +100,7 @@
         <div class="target">🎯 FIND: <span class="city-name" id="targetCity">Loading...</span></div>
     </div>
     
-    <div class="map-container">
-        <canvas id="turkeyCanvas" width="900" height="600"></canvas>
-    </div>
+    <canvas id="turkeyCanvas" width="900" height="600"></canvas>
     
     <div class="message" id="message">📍 TAP ON THE MAP where you think the city is located</div>
     <div class="feedback" id="feedback"></div>
@@ -127,8 +114,6 @@
     canvas.width = width;
     canvas.height = height;
     
-    // City coordinates (pixel positions on 900x600 map)
-    // These are approximate real locations on Turkey map
     const cities = [
         { name: "Istanbul", x: 310, y: 210 },
         { name: "Ankara", x: 410, y: 280 },
@@ -157,15 +142,11 @@
     let canTap = true;
     let usedCities = [];
     
-    // Draw the map (drawing a simple Turkey outline with cities marked)
     function drawMap(highlightX = null, highlightY = null) {
         ctx.clearRect(0, 0, width, height);
-        
-        // Draw water background
         ctx.fillStyle = "#87CEEB";
         ctx.fillRect(0, 0, width, height);
         
-        // Draw Turkey land shape (simplified outline)
         ctx.beginPath();
         ctx.moveTo(200, 150);
         ctx.bezierCurveTo(250, 120, 350, 100, 450, 110);
@@ -193,7 +174,6 @@
         ctx.lineWidth = 2;
         ctx.stroke();
         
-        // Draw city dots
         for (let city of cities) {
             ctx.beginPath();
             ctx.arc(city.x, city.y, 5, 0, Math.PI * 2);
@@ -203,14 +183,11 @@
             ctx.arc(city.x, city.y, 3, 0, Math.PI * 2);
             ctx.fillStyle = "#ffaa33";
             ctx.fill();
-            
-            // Label
             ctx.font = "11px Arial";
             ctx.fillStyle = "#2c2b28";
             ctx.fillText(city.name, city.x + 7, city.y - 5);
         }
         
-        // Highlight current target city
         if (currentCity) {
             ctx.beginPath();
             ctx.arc(currentCity.x, currentCity.y, 12, 0, Math.PI * 2);
@@ -223,7 +200,6 @@
             ctx.fill();
         }
         
-        // Show click highlight
         if (highlightX && highlightY) {
             ctx.beginPath();
             ctx.arc(highlightX, highlightY, 15, 0, Math.PI * 2);
@@ -238,10 +214,7 @@
     }
     
     function getRandomCity() {
-        // Don't repeat cities until all have been used
-        if (usedCities.length === cities.length) {
-            usedCities = [];
-        }
+        if (usedCities.length === cities.length) usedCities = [];
         const available = cities.filter(c => !usedCities.includes(c));
         const random = available[Math.floor(Math.random() * available.length)];
         usedCities.push(random);
@@ -260,7 +233,6 @@
         const dx = x1 - x2;
         const dy = y1 - y2;
         const pixelDist = Math.sqrt(dx * dx + dy * dy);
-        // Rough conversion: 1 pixel ≈ 7 km in Turkey
         return pixelDist * 7;
     }
     
@@ -281,11 +253,10 @@
         
         const messageDiv = document.getElementById('message');
         messageDiv.className = `message ${result.grade}`;
-        messageDiv.innerHTML = `${result.text} (${Math.round(distance)} km away from ${currentCity.name})`;
+        messageDiv.innerHTML = `${result.text} (${Math.round(distance)} km from ${currentCity.name})`;
         
-        document.getElementById('feedback').innerHTML = `📍 You tapped at (${Math.round(clickX)}, ${Math.round(clickY)}) | Correct location: (${currentCity.x}, ${currentCity.y})`;
+        document.getElementById('feedback').innerHTML = `📍 You tapped ${Math.round(distance)} km away`;
         
-        // Show where they clicked
         drawMap(clickX, clickY);
         
         canTap = false;
@@ -305,14 +276,6 @@
         canTap = true;
     }
     
-    function resetGame() {
-        score = 0;
-        usedCities = [];
-        document.getElementById('score').innerText = score;
-        nextCity();
-    }
-    
-    // Initialize
     currentCity = cities[0];
     document.getElementById('targetCity').innerText = currentCity.name;
     drawMap();
