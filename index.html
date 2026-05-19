@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey MapTap - Find the City</title>
+    <title>Turkey MapTap - Geographic Edition</title>
     <style>
-        * {
-            user-select: none;
-            box-sizing: border-box;
-        }
+        * { user-select: none; box-sizing: border-box; }
         body {
             background: linear-gradient(145deg, #1a472a, #0e2a1a);
             display: flex;
@@ -65,9 +62,8 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
             cursor: crosshair;
             background: #87CEEB;
-            width: auto;
-            height: auto;
             max-width: 100%;
+            height: auto;
         }
         .message {
             background: #2c2b28;
@@ -91,6 +87,7 @@
             border-radius: 50px;
             cursor: pointer;
             width: 100%;
+            margin-top: 10px;
         }
         button:active { transform: scale(0.98); }
         .feedback {
@@ -124,37 +121,139 @@
     const canvas = document.getElementById('turkeyCanvas');
     const ctx = canvas.getContext('2d');
     
-    // Lock canvas to exact 1024x500 (no distortion)
     canvas.width = 1024;
     canvas.height = 500;
     
-    // Load the map
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // City coordinates for 1024x500 map (approximate - you can adjust these)
+    // CORRECTED: Turkey's TRUE geographic extreme points
+    // Source: Wikipedia / WorldAtlas - the actual borders of Turkey [citation:1][citation:2][citation:7]
+    const TURKEY_NORTH = 42.106;   // 42°06′21″N - Kofçaz, Kırklareli
+    const TURKEY_SOUTH = 35.813;   // 35°48′46″N - Yayladağı, Hatay
+    const TURKEY_WEST = 25.666;    // 25°39′56″E - Cape Avlaka, Gökçeada
+    const TURKEY_EAST = 44.818;    // 44°49′04″E - Dilucu Border Gate, Iğdır
+    
+    const CANVAS_WIDTH = 1024;
+    const CANVAS_HEIGHT = 500;
+    
+    function latToY(lat) {
+        const ratio = (TURKEY_NORTH - lat) / (TURKEY_NORTH - TURKEY_SOUTH);
+        return ratio * CANVAS_HEIGHT;
+    }
+    
+    function lonToX(lon) {
+        const ratio = (lon - TURKEY_WEST) / (TURKEY_EAST - TURKEY_WEST);
+        return ratio * CANVAS_WIDTH;
+    }
+    
+    function pixelToLatLon(x, y) {
+        const lon = TURKEY_WEST + (x / CANVAS_WIDTH) * (TURKEY_EAST - TURKEY_WEST);
+        const lat = TURKEY_NORTH - (y / CANVAS_HEIGHT) * (TURKEY_NORTH - TURKEY_SOUTH);
+        return { lat, lon };
+    }
+    
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+    
+    // All 81 Turkish provinces with accurate lat/lon coordinates
     const cities = [
-        { name: "Istanbul", x: 340, y: 165 },
-        { name: "Ankara", x: 485, y: 210 },
-        { name: "Izmir", x: 275, y: 260 },
-        { name: "Bursa", x: 375, y: 195 },
-        { name: "Antalya", x: 520, y: 340 },
-        { name: "Adana", x: 610, y: 330 },
-        { name: "Gaziantep", x: 670, y: 320 },
-        { name: "Konya", x: 495, y: 280 },
-        { name: "Trabzon", x: 730, y: 170 },
-        { name: "Diyarbakır", x: 750, y: 315 },
-        { name: "Mersin", x: 580, y: 350 },
-        { name: "Kayseri", x: 600, y: 255 },
-        { name: "Samsun", x: 655, y: 200 },
-        { name: "Erzurum", x: 830, y: 225 },
-        { name: "Van", x: 915, y: 295 },
-        { name: "Malatya", x: 680, y: 280 },
-        { name: "Denizli", x: 390, y: 305 },
-        { name: "Şanlıurfa", x: 745, y: 340 },
-        { name: "Eskişehir", x: 440, y: 220 },
-        { name: "Edirne", x: 225, y: 150 }
+        { name: "Adana", lat: 36.9919, lon: 35.3308 },
+        { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
+        { name: "Afyonkarahisar", lat: 38.7584, lon: 30.5383 },
+        { name: "Ağrı", lat: 39.7195, lon: 43.0505 },
+        { name: "Amasya", lat: 40.6517, lon: 35.8336 },
+        { name: "Ankara", lat: 39.9208, lon: 32.8541 },
+        { name: "Antalya", lat: 36.8969, lon: 30.7133 },
+        { name: "Artvin", lat: 41.1825, lon: 41.8189 },
+        { name: "Aydın", lat: 37.8416, lon: 27.8456 },
+        { name: "Balıkesir", lat: 39.6484, lon: 27.8826 },
+        { name: "Bilecik", lat: 40.1431, lon: 29.9794 },
+        { name: "Bingöl", lat: 38.8863, lon: 40.4987 },
+        { name: "Bitlis", lat: 38.4000, lon: 42.1083 },
+        { name: "Bolu", lat: 40.7356, lon: 31.6086 },
+        { name: "Burdur", lat: 37.7203, lon: 30.2908 },
+        { name: "Bursa", lat: 40.1826, lon: 29.0665 },
+        { name: "Çanakkale", lat: 40.1553, lon: 26.4142 },
+        { name: "Çankırı", lat: 40.6000, lon: 33.6167 },
+        { name: "Çorum", lat: 40.5492, lon: 34.9536 },
+        { name: "Denizli", lat: 37.7735, lon: 29.0865 },
+        { name: "Diyarbakır", lat: 37.9144, lon: 40.2306 },
+        { name: "Edirne", lat: 41.6771, lon: 26.5557 },
+        { name: "Elazığ", lat: 38.6811, lon: 39.2256 },
+        { name: "Erzincan", lat: 39.7464, lon: 39.4925 },
+        { name: "Erzurum", lat: 39.9051, lon: 41.2709 },
+        { name: "Eskişehir", lat: 39.7700, lon: 30.5025 },
+        { name: "Gaziantep", lat: 37.0662, lon: 37.3833 },
+        { name: "Giresun", lat: 40.9128, lon: 38.3894 },
+        { name: "Gümüşhane", lat: 40.4603, lon: 39.4769 },
+        { name: "Hakkâri", lat: 37.5747, lon: 43.7408 },
+        { name: "Hatay", lat: 36.4018, lon: 36.3498 },
+        { name: "Isparta", lat: 37.7644, lon: 30.5564 },
+        { name: "Mersin", lat: 36.8000, lon: 34.6333 },
+        { name: "İstanbul", lat: 41.0082, lon: 28.9784 },
+        { name: "İzmir", lat: 38.4189, lon: 27.1287 },
+        { name: "Kars", lat: 40.6017, lon: 43.0975 },
+        { name: "Kastamonu", lat: 41.3887, lon: 33.7825 },
+        { name: "Kayseri", lat: 38.7239, lon: 35.4801 },
+        { name: "Kırklareli", lat: 41.7358, lon: 27.2252 },
+        { name: "Kırşehir", lat: 39.1464, lon: 34.1597 },
+        { name: "Kocaeli", lat: 40.7655, lon: 29.9408 },
+        { name: "Konya", lat: 37.8704, lon: 32.5110 },
+        { name: "Kütahya", lat: 39.4217, lon: 29.9879 },
+        { name: "Malatya", lat: 38.3552, lon: 38.3095 },
+        { name: "Manisa", lat: 38.6133, lon: 27.4250 },
+        { name: "Kahramanmaraş", lat: 37.5875, lon: 36.9317 },
+        { name: "Mardin", lat: 37.3132, lon: 40.7351 },
+        { name: "Muğla", lat: 37.2153, lon: 28.3636 },
+        { name: "Muş", lat: 38.7347, lon: 41.4911 },
+        { name: "Nevşehir", lat: 38.6250, lon: 34.7167 },
+        { name: "Niğde", lat: 37.9667, lon: 34.6833 },
+        { name: "Ordu", lat: 40.9839, lon: 37.8764 },
+        { name: "Rize", lat: 41.0208, lon: 40.5219 },
+        { name: "Sakarya", lat: 40.7732, lon: 30.3947 },
+        { name: "Samsun", lat: 41.2871, lon: 36.3234 },
+        { name: "Siirt", lat: 37.9311, lon: 41.9453 },
+        { name: "Sinop", lat: 42.0239, lon: 35.1531 },
+        { name: "Sivas", lat: 39.7515, lon: 37.0172 },
+        { name: "Tekirdağ", lat: 40.9789, lon: 27.5106 },
+        { name: "Tokat", lat: 40.3139, lon: 36.5544 },
+        { name: "Trabzon", lat: 41.0061, lon: 39.7191 },
+        { name: "Tunceli", lat: 39.1075, lon: 39.5489 },
+        { name: "Şanlıurfa", lat: 37.1591, lon: 38.7969 },
+        { name: "Uşak", lat: 38.6775, lon: 29.4058 },
+        { name: "Van", lat: 38.5012, lon: 43.3730 },
+        { name: "Yozgat", lat: 39.8200, lon: 34.8094 },
+        { name: "Zonguldak", lat: 41.4564, lon: 31.7975 },
+        { name: "Aksaray", lat: 38.3747, lon: 34.0289 },
+        { name: "Bayburt", lat: 40.2554, lon: 40.2231 },
+        { name: "Karaman", lat: 37.1811, lon: 33.2150 },
+        { name: "Kırıkkale", lat: 39.8468, lon: 33.5153 },
+        { name: "Batman", lat: 37.8812, lon: 41.1351 },
+        { name: "Şırnak", lat: 37.5163, lon: 42.4610 },
+        { name: "Bartın", lat: 41.6355, lon: 32.3362 },
+        { name: "Ardahan", lat: 41.1105, lon: 42.7022 },
+        { name: "Iğdır", lat: 39.9200, lon: 44.0440 },
+        { name: "Yalova", lat: 40.6550, lon: 29.2775 },
+        { name: "Karabük", lat: 41.2061, lon: 32.6194 },
+        { name: "Kilis", lat: 36.7167, lon: 37.1167 },
+        { name: "Osmaniye", lat: 37.0750, lon: 36.2500 },
+        { name: "Düzce", lat: 40.8389, lon: 31.1656 }
     ];
+    
+    // Calculate pixel positions
+    for (let city of cities) {
+        city.x = lonToX(city.lon);
+        city.y = latToY(city.lat);
+    }
     
     let currentCity = null;
     let score = 0;
@@ -162,22 +261,12 @@
     let usedCities = [];
     let mapLoaded = false;
     
-    // Draw ONLY the map and the target city highlight (NO city names visible)
     function drawMap(clickX = null, clickY = null) {
         if (!mapLoaded) return;
         
-        ctx.clearRect(0, 0, 1024, 500);
-        ctx.drawImage(mapImage, 0, 0, 1024, 500);
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.drawImage(mapImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         
-        // NO city names or dots visible - only the target city hint
-        if (currentCity) {
-            // Draw a subtle pulsing circle around the target city (so players know WHERE to look?)
-            // Actually, for MapTap, you shouldn't show the target at all. 
-            // But let's add a small dot that ONLY appears AFTER they click? No.
-            // For pure MapTap style: NOTHING visible. Players must know geography.
-        }
-        
-        // Show where the user clicked (feedback)
         if (clickX && clickY) {
             ctx.beginPath();
             ctx.arc(clickX, clickY, 14, 0, Math.PI * 2);
@@ -188,8 +277,6 @@
             ctx.arc(clickX, clickY, 7, 0, Math.PI * 2);
             ctx.fillStyle = "rgba(255,255,255,0.6)";
             ctx.fill();
-            
-            // Draw line to target? No, that would give it away.
         }
     }
     
@@ -199,7 +286,7 @@
     };
     
     mapImage.onerror = function() {
-        document.getElementById('message').innerHTML = "⚠️ Map image not found. Please upload turkey-map.png";
+        document.getElementById('message').innerHTML = "⚠️ Map image not found! Please upload turkey-map.png";
         document.getElementById('message').style.background = "#8b3c2c";
     };
     
@@ -211,15 +298,12 @@
         return random;
     }
     
-    function calculateScore(distancePixels) {
-        // Rough conversion: 1 pixel ≈ 5 km in Turkey on a 1024x500 map
-        const distanceKm = distancePixels * 5;
-        
-        if (distanceKm < 30) return { points: 100, grade: "perfect", text: "🎯 PERFECT! 100 points!", km: distanceKm };
-        if (distanceKm < 80) return { points: 70, grade: "good", text: "👍 GOOD! 70 points", km: distanceKm };
-        if (distanceKm < 150) return { points: 40, grade: "close", text: "📌 CLOSE! 40 points", km: distanceKm };
-        if (distanceKm < 250) return { points: 20, grade: "far", text: "🔍 FAR! 20 points", km: distanceKm };
-        return { points: 0, grade: "miss", text: "❌ MISS! 0 points", km: distanceKm };
+    function calculateScore(distanceKm) {
+        if (distanceKm < 30) return { points: 100, grade: "perfect", text: "🎯 PERFECT! 100 points!", km: Math.round(distanceKm) };
+        if (distanceKm < 80) return { points: 70, grade: "good", text: "👍 GOOD! 70 points", km: Math.round(distanceKm) };
+        if (distanceKm < 150) return { points: 40, grade: "close", text: "📌 CLOSE! 40 points", km: Math.round(distanceKm) };
+        if (distanceKm < 250) return { points: 20, grade: "far", text: "🔍 FAR! 20 points", km: Math.round(distanceKm) };
+        return { points: 0, grade: "miss", text: "❌ MISS! 0 points", km: Math.round(distanceKm) };
     }
     
     function handleCanvasClick(e) {
@@ -232,27 +316,25 @@
         const clickX = (e.clientX - rect.left) * scaleX;
         const clickY = (e.clientY - rect.top) * scaleY;
         
-        // Calculate distance from click to actual city location
-        const dx = clickX - currentCity.x;
-        const dy = clickY - currentCity.y;
-        const distancePixels = Math.sqrt(dx * dx + dy * dy);
-        const result = calculateScore(distancePixels);
+        const clickLatLon = pixelToLatLon(clickX, clickY);
+        const distanceKm = haversineDistance(
+            clickLatLon.lat, clickLatLon.lon,
+            currentCity.lat, currentCity.lon
+        );
         
-        // Update score
+        const result = calculateScore(distanceKm);
+        
         score += result.points;
         document.getElementById('score').innerText = score;
         
-        // Show result
         const messageDiv = document.getElementById('message');
         messageDiv.className = `message ${result.grade}`;
-        messageDiv.innerHTML = `${result.text} (${Math.round(result.km)} km from ${currentCity.name})`;
+        messageDiv.innerHTML = `${result.text} (${result.km} km from ${currentCity.name})`;
         
-        document.getElementById('feedback').innerHTML = `📍 You clicked ${Math.round(result.km)} km away from ${currentCity.name}`;
+        document.getElementById('feedback').innerHTML = `📍 You clicked ${result.km} km away from ${currentCity.name}`;
         
-        // Show where they clicked
         drawMap(clickX, clickY);
         
-        // Disable clicking for 1.5 seconds
         canClick = false;
         setTimeout(() => {
             canClick = true;
@@ -261,7 +343,6 @@
     
     function nextCity() {
         if (!canClick) return;
-        
         currentCity = getRandomCity();
         document.getElementById('targetCity').innerText = currentCity.name;
         document.getElementById('message').className = "message";
@@ -271,7 +352,6 @@
         canClick = true;
     }
     
-    // Initialize
     currentCity = cities[0];
     document.getElementById('targetCity').innerText = currentCity.name;
     
