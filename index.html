@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey MapTap - 5 Cities Challenge</title>
+    <title>Turkey MapTap - Learn Geography</title>
     <style>
         * { user-select: none; box-sizing: border-box; }
         body {
@@ -55,7 +55,6 @@
         .map-container {
             text-align: center;
             margin: 15px 0;
-            position: relative;
         }
         canvas {
             display: inline-block;
@@ -65,6 +64,7 @@
             background: #87CEEB;
             max-width: 100%;
             height: auto;
+            border: 2px solid #c9b27c;
         }
         .message {
             padding: 12px;
@@ -74,22 +74,13 @@
             margin: 10px 0;
             font-weight: bold;
         }
-        .message-info {
-            background: #e8e0c8;
-            color: #2c2b28;
-            border: 2px solid #c9b27c;
-        }
+        .message-info { background: #e8e0c8; color: #2c2b28; border: 2px solid #c9b27c; }
         .perfect { background: #a5d6a5; color: #1a472a; border: 2px solid #2f6b3c; }
         .good { background: #c8e6c8; color: #1a472a; border: 2px solid #4a8c3a; }
         .close { background: #ffe0b3; color: #5c3a1a; border: 2px solid #c9a13b; }
         .far { background: #ffcc99; color: #5c3a1a; border: 2px solid #b87a2a; }
         .miss { background: #ffb3b3; color: #8b0000; border: 2px solid #cc0000; }
-        .game-complete {
-            background: #a5d6a5;
-            color: #1a472a;
-            border: 3px solid #2f6b3c;
-            font-size: 1.3rem;
-        }
+        .game-complete { background: #a5d6a5; color: #1a472a; border: 3px solid #2f6b3c; font-size: 1.3rem; }
         .feedback {
             font-size: 0.9rem;
             margin-top: 8px;
@@ -131,7 +122,6 @@
             color: #2c2b28;
         }
         button:active { transform: scale(0.98); }
-        
         .points-breakdown {
             background: #2c2b28;
             border-radius: 20px;
@@ -144,10 +134,7 @@
             justify-content: center;
             gap: 12px;
         }
-        .points-breakdown span {
-            color: white;
-        }
-        
+        .points-breakdown span { color: white; }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
@@ -170,7 +157,7 @@
     <div class="feedback" id="feedback"></div>
     <div class="progress" id="progress">Question 1 of 5</div>
     
-    <div class="points-breakdown" id="pointsBreakdown">
+    <div class="points-breakdown">
         <div>🎯 0-60km: <span>200 pts</span></div>
         <div>👍 61-100km: <span>160 pts</span></div>
         <div>✅ 101-150km: <span>120 pts</span></div>
@@ -201,30 +188,26 @@
     const CANVAS_HEIGHT = 500;
     
     function latToY(lat) {
-        const ratio = (TURKEY_NORTH - lat) / (TURKEY_NORTH - TURKEY_SOUTH);
-        return ratio * CANVAS_HEIGHT;
+        return ((TURKEY_NORTH - lat) / (TURKEY_NORTH - TURKEY_SOUTH)) * CANVAS_HEIGHT;
     }
     
     function lonToX(lon) {
-        const ratio = (lon - TURKEY_WEST) / (TURKEY_EAST - TURKEY_WEST);
-        return ratio * CANVAS_WIDTH;
+        return ((lon - TURKEY_WEST) / (TURKEY_EAST - TURKEY_WEST)) * CANVAS_WIDTH;
     }
     
     function pixelToLatLon(x, y) {
-        const lon = TURKEY_WEST + (x / CANVAS_WIDTH) * (TURKEY_EAST - TURKEY_WEST);
-        const lat = TURKEY_NORTH - (y / CANVAS_HEIGHT) * (TURKEY_NORTH - TURKEY_SOUTH);
-        return { lat, lon };
+        return {
+            lon: TURKEY_WEST + (x / CANVAS_WIDTH) * (TURKEY_EAST - TURKEY_WEST),
+            lat: TURKEY_NORTH - (y / CANVAS_HEIGHT) * (TURKEY_NORTH - TURKEY_SOUTH)
+        };
     }
     
     function haversineDistance(lat1, lon1, lat2, lon2) {
         const R = 6371;
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
     
     const allCities = [
@@ -289,6 +272,13 @@
     let nextQuestionTimeout = null;
     let hasAnsweredCurrent = false;
     
+    // Store markers to display after click
+    let showMarkers = false;
+    let userClickX = null;
+    let userClickY = null;
+    let correctX = null;
+    let correctY = null;
+    
     function shuffleArray(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -302,64 +292,55 @@
         return shuffled.slice(0, 5);
     }
     
-    function drawMap(clickX = null, clickY = null, showCorrectLocation = false, correctX = null, correctY = null) {
+    function drawMap() {
         if (!mapLoaded) return;
         
         ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         ctx.drawImage(mapImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         
-        // Show user's click location
-        if (clickX && clickY) {
+        // Draw user's click marker (white)
+        if (showMarkers && userClickX && userClickY) {
             ctx.beginPath();
-            ctx.arc(clickX, clickY, 14, 0, Math.PI * 2);
+            ctx.arc(userClickX, userClickY, 14, 0, Math.PI * 2);
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 3;
             ctx.stroke();
             ctx.beginPath();
-            ctx.arc(clickX, clickY, 7, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255,255,255,0.6)";
+            ctx.arc(userClickX, userClickY, 7, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.8)";
             ctx.fill();
-            
-            // Add "Your click" label
             ctx.font = "bold 12px Arial";
             ctx.fillStyle = "#ffffff";
             ctx.shadowBlur = 3;
             ctx.shadowColor = "black";
-            ctx.fillText("👆 Your click", clickX + 10, clickY - 8);
-            ctx.shadowBlur = 0;
-        }
-        
-        // Show the CORRECT location (answer)
-        if (showCorrectLocation && correctX && correctY) {
-            ctx.beginPath();
-            ctx.arc(correctX, correctY, 16, 0, Math.PI * 2);
-            ctx.strokeStyle = "#00ff00";
-            ctx.lineWidth = 4;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(correctX, correctY, 9, 0, Math.PI * 2);
-            ctx.fillStyle = "#33ff33";
-            ctx.fill();
+            ctx.fillText("👆 YOUR CLICK", userClickX + 12, userClickY - 8);
             
-            // Add "Correct location" label
-            ctx.font = "bold 12px Arial";
-            ctx.fillStyle = "#00ff00";
-            ctx.shadowBlur = 3;
-            ctx.shadowColor = "black";
-            ctx.fillText("✅ Correct: " + currentCity.name, correctX + 12, correctY - 8);
-            ctx.shadowBlur = 0;
-            
-            // Draw a line between click and correct location
-            if (clickX && clickY) {
+            // Draw correct location marker (GREEN)
+            if (correctX && correctY) {
                 ctx.beginPath();
-                ctx.moveTo(clickX, clickY);
+                ctx.arc(correctX, correctY, 16, 0, Math.PI * 2);
+                ctx.strokeStyle = "#00ff00";
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(correctX, correctY, 9, 0, Math.PI * 2);
+                ctx.fillStyle = "#33ff33";
+                ctx.fill();
+                ctx.font = "bold 12px Arial";
+                ctx.fillStyle = "#00ff00";
+                ctx.fillText("✅ CORRECT: " + currentCity.name, correctX + 12, correctY - 8);
+                
+                // Draw line connecting the two
+                ctx.beginPath();
+                ctx.moveTo(userClickX, userClickY);
                 ctx.lineTo(correctX, correctY);
                 ctx.strokeStyle = "#ffaa33";
                 ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
+                ctx.setLineDash([8, 6]);
                 ctx.stroke();
                 ctx.setLineDash([]);
             }
+            ctx.shadowBlur = 0;
         }
     }
     
@@ -406,7 +387,6 @@
         const messageDiv = document.getElementById('message');
         messageDiv.className = "message game-complete";
         messageDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
-        
         document.getElementById('feedback').innerHTML = "";
         document.getElementById('progress').innerHTML = `🏁 Game finished! Click "PLAY AGAIN" for a new round 🏁`;
         
@@ -427,6 +407,12 @@
         }
         
         hasAnsweredCurrent = false;
+        showMarkers = false;
+        userClickX = null;
+        userClickY = null;
+        correctX = null;
+        correctY = null;
+        
         currentCity = currentRound[currentQuestionIndex];
         document.getElementById('targetCity').innerText = currentCity.name;
         document.getElementById('progress').innerHTML = `📍 Question ${currentQuestionIndex + 1} of ${currentRound.length}`;
@@ -434,7 +420,7 @@
         msgDiv.className = "message message-info";
         msgDiv.innerHTML = "📍 CLICK ON THE MAP where you think the city is located";
         document.getElementById('feedback').innerHTML = "";
-        drawMap(); // Clear map without markers
+        drawMap();
         canClick = true;
     }
     
@@ -478,10 +464,13 @@
         }
         document.getElementById('feedback').innerHTML = feedbackText;
         
-        // Show the correct location on the map with a green marker
-        const correctX = currentCity.x;
-        const correctY = currentCity.y;
-        drawMap(clickX, clickY, true, correctX, correctY);
+        // Store markers and redraw map
+        showMarkers = true;
+        userClickX = clickX;
+        userClickY = clickY;
+        correctX = currentCity.x;
+        correctY = currentCity.y;
+        drawMap();
         
         hasAnsweredCurrent = true;
         canClick = false;
@@ -491,7 +480,7 @@
         nextQuestionTimeout = setTimeout(() => {
             currentQuestionIndex++;
             loadNextQuestion();
-        }, 3500); // Longer timeout to let players see the correct location
+        }, 4000);
     }
     
     function resetGame() {
@@ -501,6 +490,11 @@
         totalScore = 0;
         currentQuestionIndex = 0;
         hasAnsweredCurrent = false;
+        showMarkers = false;
+        userClickX = null;
+        userClickY = null;
+        correctX = null;
+        correctY = null;
         document.getElementById('score').innerText = "0";
         
         const finalDiv = document.getElementById('finalScore');
