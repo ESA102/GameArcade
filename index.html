@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Turkey MapTap - Find the City</title>
     <style>
-        * { user-select: none; box-sizing: border-box; }
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
         body {
             background: linear-gradient(145deg, #1a472a, #0e2a1a);
             display: flex;
@@ -61,7 +64,7 @@
             border-radius: 20px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
             cursor: crosshair;
-            background: #c9b27c;
+            background: #87CEEB;
             max-width: 100%;
             height: auto;
         }
@@ -134,7 +137,7 @@
     </div>
     
     <div class="map-container">
-        <canvas id="turkeyCanvas" width="900" height="500"></canvas>
+        <canvas id="turkeyCanvas" width="1024" height="500"></canvas>
     </div>
     
     <div class="message" id="message">📍 CLICK ON THE MAP where you think the city is located</div>
@@ -147,9 +150,11 @@
 <script>
     const canvas = document.getElementById('turkeyCanvas');
     const ctx = canvas.getContext('2d');
-    const width = 900, height = 500;
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = 1024;
+    canvas.height = 500;
+    
+    const mapImage = new Image();
+    mapImage.src = 'turkey-map.png';
     
     // Turkey's geographic extreme points
     const TURKEY_NORTH = 42.106;
@@ -157,12 +162,21 @@
     const TURKEY_WEST = 25.666;
     const TURKEY_EAST = 44.818;
     
-    function latToY(lat) { return ((TURKEY_NORTH - lat) / (TURKEY_NORTH - TURKEY_SOUTH)) * height; }
-    function lonToX(lon) { return ((lon - TURKEY_WEST) / (TURKEY_EAST - TURKEY_WEST)) * width; }
+    const CANVAS_WIDTH = 1024;
+    const CANVAS_HEIGHT = 500;
+    
+    function latToY(lat) {
+        return ((TURKEY_NORTH - lat) / (TURKEY_NORTH - TURKEY_SOUTH)) * CANVAS_HEIGHT;
+    }
+    
+    function lonToX(lon) {
+        return ((lon - TURKEY_WEST) / (TURKEY_EAST - TURKEY_WEST)) * CANVAS_WIDTH;
+    }
+    
     function pixelToLatLon(x, y) {
         return {
-            lon: TURKEY_WEST + (x / width) * (TURKEY_EAST - TURKEY_WEST),
-            lat: TURKEY_NORTH - (y / height) * (TURKEY_NORTH - TURKEY_SOUTH)
+            lon: TURKEY_WEST + (x / CANVAS_WIDTH) * (TURKEY_EAST - TURKEY_WEST),
+            lat: TURKEY_NORTH - (y / CANVAS_HEIGHT) * (TURKEY_NORTH - TURKEY_SOUTH)
         };
     }
     
@@ -220,43 +234,27 @@
     ];
     
     const cities = allCities.map(city => ({
-        ...city,
+        name: city.name,
+        lat: city.lat,
+        lon: city.lon,
         x: lonToX(city.lon),
         y: latToY(city.lat)
     }));
     
+    let currentRound = [];
+    let currentQuestionIndex = 0;
+    let currentCity = null;
+    let totalScore = 0;
+    let canClick = true;
+    let mapLoaded = false;
+    let gameActive = true;
+    let nextQuestionTimeout = null;
+    let hasAnsweredCurrent = false;
+    
     function drawMap(clickX = null, clickY = null) {
-        ctx.clearRect(0, 0, width, height);
-        ctx.fillStyle = "#87CEEB";
-        ctx.fillRect(0, 0, width, height);
-        
-        // Draw Turkey shape
-        ctx.beginPath();
-        ctx.moveTo(180, 120);
-        ctx.bezierCurveTo(220, 100, 320, 90, 420, 95);
-        ctx.lineTo(520, 90);
-        ctx.lineTo(620, 100);
-        ctx.lineTo(720, 130);
-        ctx.lineTo(760, 180);
-        ctx.lineTo(750, 250);
-        ctx.lineTo(720, 320);
-        ctx.lineTo(680, 380);
-        ctx.lineTo(620, 420);
-        ctx.lineTo(550, 450);
-        ctx.lineTo(470, 465);
-        ctx.lineTo(390, 460);
-        ctx.lineTo(310, 440);
-        ctx.lineTo(250, 400);
-        ctx.lineTo(200, 350);
-        ctx.lineTo(170, 290);
-        ctx.lineTo(160, 220);
-        ctx.lineTo(180, 120);
-        ctx.fillStyle = "#c9b27c";
-        ctx.fill();
-        ctx.strokeStyle = "#5c4727";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
+        if (!mapLoaded) return;
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.drawImage(mapImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         if (clickX && clickY) {
             ctx.beginPath();
             ctx.arc(clickX, clickY, 14, 0, Math.PI * 2);
@@ -269,6 +267,16 @@
             ctx.fill();
         }
     }
+    
+    mapImage.onload = function() {
+        mapLoaded = true;
+        drawMap();
+    };
+    
+    mapImage.onerror = function() {
+        document.getElementById('message').innerHTML = "⚠️ Map image not found! Please upload turkey-map.png";
+        document.getElementById('message').style.background = "#8b3c2c";
+    };
     
     function calculatePoints(distanceKm) {
         if (distanceKm <= 60) return 200;
@@ -288,9 +296,6 @@
         return "❌ MISS";
     }
     
-    let currentRound = [], currentQuestionIndex = 0, currentCity = null, totalScore = 0;
-    let canClick = true, gameActive = true, nextQuestionTimeout = null, hasAnsweredCurrent = false;
-    
     function shuffleArray(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -300,14 +305,16 @@
     }
     
     function selectRandomCities() {
-        return shuffleArray([...cities]).slice(0, 5);
+        const shuffled = shuffleArray([...cities]);
+        return shuffled.slice(0, 5);
     }
     
     function endGame() {
         gameActive = false;
-        document.getElementById('message').className = "message";
-        document.getElementById('message').style.background = "#2f6b3c";
-        document.getElementById('message').innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
+        const messageDiv = document.getElementById('message');
+        messageDiv.className = "message";
+        messageDiv.style.background = "#2f6b3c";
+        messageDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
         document.getElementById('feedback').innerHTML = "";
         document.getElementById('progress').innerHTML = `🏁 Game finished! Click "PLAY AGAIN" for a new round 🏁`;
         
@@ -339,7 +346,7 @@
     }
     
     function handleCanvasClick(e) {
-        if (!gameActive || !canClick || !currentCity || hasAnsweredCurrent) return;
+        if (!gameActive || !canClick || !currentCity || !mapLoaded || hasAnsweredCurrent) return;
         
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -395,7 +402,6 @@
         loadNextQuestion();
     }
     
-    drawMap();
     resetGame();
     
     canvas.addEventListener('click', handleCanvasClick);
