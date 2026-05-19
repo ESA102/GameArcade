@@ -141,7 +141,7 @@
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // Turkey's TRUE geographic extreme points
+    // Turkey's geographic extreme points
     const TURKEY_NORTH = 42.106;
     const TURKEY_SOUTH = 35.813;
     const TURKEY_WEST = 25.666;
@@ -280,6 +280,7 @@
     let mapLoaded = false;
     let gameActive = true;
     let nextQuestionTimeout = null;
+    let hasAnsweredCurrent = false;
     
     function shuffleArray(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
@@ -367,10 +368,14 @@
     }
     
     function loadNextQuestion() {
+        // Check if game is complete
         if (currentQuestionIndex >= currentRound.length) {
             endGame();
             return;
         }
+        
+        // Reset answer flag for new question
+        hasAnsweredCurrent = false;
         
         currentCity = currentRound[currentQuestionIndex];
         document.getElementById('targetCity').innerText = currentCity.name;
@@ -383,7 +388,8 @@
     }
     
     function handleCanvasClick(e) {
-        if (!gameActive || !canClick || !currentCity || !mapLoaded) return;
+        // Prevent clicking if: game inactive, already answered this question, no current city, or map not loaded
+        if (!gameActive || !canClick || !currentCity || !mapLoaded || hasAnsweredCurrent) return;
         
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -422,12 +428,14 @@
         
         drawMap(clickX, clickY);
         
+        // Mark as answered so player can't click again for this question
+        hasAnsweredCurrent = true;
         canClick = false;
         
         // Clear any existing timeout
         if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
         
-        // Move to next question after 2 seconds
+        // Move to next question after 2 seconds, regardless of right or wrong
         nextQuestionTimeout = setTimeout(() => {
             currentQuestionIndex++;
             loadNextQuestion();
@@ -441,6 +449,7 @@
         gameActive = true;
         totalScore = 0;
         currentQuestionIndex = 0;
+        hasAnsweredCurrent = false;
         document.getElementById('score').innerText = "0";
         
         // Remove final score div if exists
