@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Turkey MapTap - Find cities on map</title>
     <style>
-        * {
-            user-select: none;
-            box-sizing: border-box;
-        }
+        * { user-select: none; box-sizing: border-box; }
         body {
             background: linear-gradient(145deg, #1a472a, #0e2a1a);
             display: flex;
@@ -23,7 +20,7 @@
             background: #f5f2e8;
             border-radius: 30px;
             padding: 20px;
-            max-width: 1000px;
+            max-width: 1100px;
             width: 100%;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
         }
@@ -58,6 +55,7 @@
         .map-container {
             position: relative;
             margin: 15px 0;
+            text-align: center;
         }
         canvas {
             display: block;
@@ -65,8 +63,10 @@
             border-radius: 20px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
             cursor: crosshair;
+            /* Maintain exact 1024x500 proportions - NO SQUISHING */
             width: 100%;
             height: auto;
+            max-width: 1024px;
             background: #87CEEB;
         }
         .message {
@@ -108,7 +108,7 @@
     </div>
     
     <div class="map-container">
-        <canvas id="turkeyCanvas" width="800" height="600"></canvas>
+        <canvas id="turkeyCanvas" width="1024" height="500"></canvas>
     </div>
     
     <div class="message" id="message">📍 TAP ON THE MAP where you think the city is located</div>
@@ -119,37 +119,37 @@
 <script>
     const canvas = document.getElementById('turkeyCanvas');
     const ctx = canvas.getContext('2d');
-    const width = 800, height = 600;
-    canvas.width = width;
-    canvas.height = height;
     
-    // Load the real Turkey map image
+    // FIXED: Force exact 1024x500 dimensions (no CSS scaling distortion)
+    canvas.width = 1024;
+    canvas.height = 500;
+    
+    // Load the map image
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // City coordinates (adjusted for 800x600 map image)
-    // These are approximate pixel positions on the real Turkey map
+    // City coordinates for 1024x500 map
     const cities = [
-        { name: "Istanbul", x: 260, y: 195 },
-        { name: "Ankara", x: 370, y: 250 },
-        { name: "Izmir", x: 215, y: 310 },
-        { name: "Bursa", x: 305, y: 230 },
-        { name: "Antalya", x: 400, y: 400 },
-        { name: "Adana", x: 480, y: 390 },
-        { name: "Gaziantep", x: 530, y: 380 },
-        { name: "Konya", x: 390, y: 330 },
-        { name: "Trabzon", x: 570, y: 195 },
-        { name: "Diyarbakır", x: 585, y: 370 },
-        { name: "Mersin", x: 455, y: 410 },
-        { name: "Kayseri", x: 470, y: 300 },
-        { name: "Samsun", x: 510, y: 235 },
-        { name: "Erzurum", x: 650, y: 265 },
-        { name: "Van", x: 710, y: 350 },
-        { name: "Malatya", x: 530, y: 330 },
-        { name: "Denizli", x: 310, y: 360 },
-        { name: "Şanlıurfa", x: 580, y: 400 },
-        { name: "Eskişehir", x: 345, y: 255 },
-        { name: "Edirne", x: 180, y: 180 }
+        { name: "Istanbul", x: 340, y: 165 },
+        { name: "Ankara", x: 485, y: 210 },
+        { name: "Izmir", x: 280, y: 260 },
+        { name: "Bursa", x: 375, y: 195 },
+        { name: "Antalya", x: 525, y: 335 },
+        { name: "Adana", x: 610, y: 325 },
+        { name: "Gaziantep", x: 670, y: 315 },
+        { name: "Konya", x: 500, y: 275 },
+        { name: "Trabzon", x: 725, y: 165 },
+        { name: "Diyarbakır", x: 745, y: 310 },
+        { name: "Mersin", x: 580, y: 345 },
+        { name: "Kayseri", x: 600, y: 250 },
+        { name: "Samsun", x: 650, y: 195 },
+        { name: "Erzurum", x: 825, y: 220 },
+        { name: "Van", x: 910, y: 290 },
+        { name: "Malatya", x: 675, y: 275 },
+        { name: "Denizli", x: 395, y: 300 },
+        { name: "Şanlıurfa", x: 740, y: 335 },
+        { name: "Eskişehir", x: 440, y: 215 },
+        { name: "Edirne", x: 230, y: 150 }
     ];
     
     let currentCity = null;
@@ -158,16 +158,13 @@
     let usedCities = [];
     let mapLoaded = false;
     
-    // Draw the map and city markers
     function drawMap(highlightX = null, highlightY = null) {
         if (!mapLoaded) return;
         
-        ctx.clearRect(0, 0, width, height);
+        ctx.clearRect(0, 0, 1024, 500);
+        ctx.drawImage(mapImage, 0, 0, 1024, 500);
         
-        // Draw the real Turkey map image
-        ctx.drawImage(mapImage, 0, 0, width, height);
-        
-        // Draw city dots on top of the map
+        // Draw city dots
         for (let city of cities) {
             ctx.beginPath();
             ctx.arc(city.x, city.y, 6, 0, Math.PI * 2);
@@ -178,7 +175,6 @@
             ctx.fillStyle = "#ffaa33";
             ctx.fill();
             
-            // City label
             ctx.font = "bold 12px Arial";
             ctx.fillStyle = "#1a1a1a";
             ctx.shadowBlur = 3;
@@ -187,7 +183,7 @@
             ctx.shadowBlur = 0;
         }
         
-        // Highlight the target city with a pulsing circle
+        // Highlight target city
         if (currentCity) {
             ctx.beginPath();
             ctx.arc(currentCity.x, currentCity.y, 16, 0, Math.PI * 2);
@@ -200,7 +196,7 @@
             ctx.fill();
         }
         
-        // Show where the user clicked
+        // Show click location
         if (highlightX && highlightY) {
             ctx.beginPath();
             ctx.arc(highlightX, highlightY, 18, 0, Math.PI * 2);
@@ -220,8 +216,7 @@
     };
     
     mapImage.onerror = function() {
-        console.error("Map image failed to load. Make sure turkey-map.png is uploaded.");
-        document.getElementById('message').innerHTML = "⚠️ Map image not found. Please upload turkey-map.png to GitHub.";
+        document.getElementById('message').innerHTML = "⚠️ Map image not found. Make sure turkey-map.png is uploaded.";
         document.getElementById('message').style.background = "#8b3c2c";
     };
     
