@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Turkey MapTap - Official Location Map Edition</title>
+    
+    <!-- FORCE NO CACHING - Ensures players always see the latest version -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <style>
         * { user-select: none; box-sizing: border-box; }
         body {
@@ -194,7 +200,8 @@
     canvas.height = 500;
     
     const mapImage = new Image();
-    mapImage.src = 'turkey-map.png';
+    // ADDED CACHE-BUSTER: Forces fresh map image every time
+    mapImage.src = 'turkey-map.png?' + Date.now();
     
     // CORRECT TURKEY BOUNDS for the official location map
     // These match the Turkey location map SVG from Wikipedia
