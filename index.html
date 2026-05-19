@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey MapTap - Find cities</title>
+    <title>Turkey MapTap - Find the City</title>
     <style>
-        * { user-select: none; box-sizing: border-box; }
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
         body {
             background: linear-gradient(145deg, #1a472a, #0e2a1a);
             display: flex;
@@ -20,7 +23,7 @@
             background: #f5f2e8;
             border-radius: 30px;
             padding: 20px;
-            max-width: 1200px;
+            max-width: 1100px;
             width: 100%;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
         }
@@ -52,20 +55,19 @@
             font-weight: bold;
             font-size: 1.8rem;
         }
-        .map-wrapper {
-            position: relative;
+        .map-container {
+            text-align: center;
             margin: 15px 0;
-            display: flex;
-            justify-content: center;
         }
         canvas {
-            display: block;
+            display: inline-block;
             border-radius: 20px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
             cursor: crosshair;
-            max-width: 100%;
-            height: auto;
             background: #87CEEB;
+            width: auto;
+            height: auto;
+            max-width: 100%;
         }
         .message {
             background: #2c2b28;
@@ -75,11 +77,11 @@
             font-size: 1.1rem;
             margin: 10px 0;
         }
-        .perfect { background: #2f6b3c; }
-        .good { background: #6b8c3c; }
-        .close { background: #c9a13b; }
-        .far { background: #8b6c3c; }
-        .miss { background: #8b3c2c; }
+        .perfect { background: #2f6b3c; color: white; }
+        .good { background: #6b8c3c; color: white; }
+        .close { background: #c9a13b; color: white; }
+        .far { background: #8b6c3c; color: white; }
+        .miss { background: #8b3c2c; color: white; }
         button {
             background: #d9a13b;
             border: none;
@@ -91,30 +93,10 @@
             width: 100%;
         }
         button:active { transform: scale(0.98); }
-        .feedback { font-size: 0.9rem; margin-top: 8px; text-align: center; }
-        .admin-panel {
-            background: #2c2b28;
-            border-radius: 20px;
-            padding: 15px;
-            margin-top: 15px;
-            color: white;
-        }
-        .admin-panel h4 { margin: 0 0 10px 0; color: #ffaa33; }
-        .coord-display {
-            font-family: monospace;
-            font-size: 12px;
-            background: #1a1a1a;
-            padding: 8px;
-            border-radius: 10px;
+        .feedback {
+            font-size: 0.9rem;
             margin-top: 8px;
-        }
-        .mode-toggle {
-            background: #d9a13b;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-bottom: 10px;
+            text-align: center;
         }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
@@ -129,196 +111,97 @@
         <div class="target">🎯 FIND: <span class="city-name" id="targetCity">Loading...</span></div>
     </div>
     
-    <div class="map-wrapper">
-        <canvas id="turkeyCanvas"></canvas>
+    <div class="map-container">
+        <canvas id="turkeyCanvas" width="1024" height="500"></canvas>
     </div>
     
-    <div class="message" id="message">📍 TAP ON THE MAP where you think the city is</div>
+    <div class="message" id="message">📍 CLICK ON THE MAP where you think the city is located</div>
     <div class="feedback" id="feedback"></div>
     <button id="nextBtn">🎲 NEXT CITY</button>
-    
-    <!-- Admin panel - click the button to enter city positions -->
-    <div class="admin-panel">
-        <button class="mode-toggle" id="toggleModeBtn">🔧 SET CITY POSITIONS (ADMIN MODE)</button>
-        <div id="adminControls" style="display: none;">
-            <p>📌 <strong>Admin Mode:</strong> Select a city from below, then click on the map to set its position.</p>
-            <select id="citySelector" style="width: 100%; padding: 8px; border-radius: 10px; margin-bottom: 10px;">
-            </select>
-            <div class="coord-display" id="coordDisplay">Click a city to see/set its coordinates</div>
-            <button id="saveCoordsBtn" style="margin-top: 10px; background: #2f6b3c;">💾 SAVE POSITIONS</button>
-        </div>
-    </div>
 </div>
 
 <script>
     const canvas = document.getElementById('turkeyCanvas');
     const ctx = canvas.getContext('2d');
     
-    // List of cities (no coordinates yet - YOU set them!)
-    const cityNames = [
-        "Istanbul", "Ankara", "Izmir", "Bursa", "Antalya", "Adana", "Gaziantep",
-        "Konya", "Trabzon", "Diyarbakır", "Mersin", "Kayseri", "Samsun", "Erzurum",
-        "Van", "Malatya", "Denizli", "Şanlıurfa", "Eskişehir", "Edirne"
+    // Lock canvas to exact 1024x500 (no distortion)
+    canvas.width = 1024;
+    canvas.height = 500;
+    
+    // Load the map
+    const mapImage = new Image();
+    mapImage.src = 'turkey-map.png';
+    
+    // City coordinates for 1024x500 map (approximate - you can adjust these)
+    const cities = [
+        { name: "Istanbul", x: 340, y: 165 },
+        { name: "Ankara", x: 485, y: 210 },
+        { name: "Izmir", x: 275, y: 260 },
+        { name: "Bursa", x: 375, y: 195 },
+        { name: "Antalya", x: 520, y: 340 },
+        { name: "Adana", x: 610, y: 330 },
+        { name: "Gaziantep", x: 670, y: 320 },
+        { name: "Konya", x: 495, y: 280 },
+        { name: "Trabzon", x: 730, y: 170 },
+        { name: "Diyarbakır", x: 750, y: 315 },
+        { name: "Mersin", x: 580, y: 350 },
+        { name: "Kayseri", x: 600, y: 255 },
+        { name: "Samsun", x: 655, y: 200 },
+        { name: "Erzurum", x: 830, y: 225 },
+        { name: "Van", x: 915, y: 295 },
+        { name: "Malatya", x: 680, y: 280 },
+        { name: "Denizli", x: 390, y: 305 },
+        { name: "Şanlıurfa", x: 745, y: 340 },
+        { name: "Eskişehir", x: 440, y: 220 },
+        { name: "Edirne", x: 225, y: 150 }
     ];
     
-    // Load saved coordinates from localStorage, or use defaults
-    let cities = [];
     let currentCity = null;
     let score = 0;
-    let canTap = true;
+    let canClick = true;
     let usedCities = [];
-    let mapImage = new Image();
     let mapLoaded = false;
-    let imgWidth = 0, imgHeight = 0;
-    let adminMode = false;
     
-    // Load saved coordinates
-    function loadCoordinates() {
-        const saved = localStorage.getItem('turkey_city_coords');
-        if (saved) {
-            return JSON.parse(saved);
-        } else {
-            // Default approximate positions (will be overwritten by admin)
-            return cityNames.map((name, i) => ({
-                name: name,
-                x: 300 + (i * 30),
-                y: 200 + (i * 15)
-            }));
-        }
-    }
-    
-    cities = loadCoordinates();
-    
-    // Save coordinates
-    function saveCoordinates() {
-        localStorage.setItem('turkey_city_coords', JSON.stringify(cities));
-        alert('Coordinates saved! Refresh to use them.');
-        drawMap();
-    }
-    
-    // Update a city's coordinates
-    function updateCityCoords(cityName, x, y) {
-        const city = cities.find(c => c.name === cityName);
-        if (city) {
-            city.x = x;
-            city.y = y;
-            drawMap();
-            updateCoordDisplay();
-        }
-    }
-    
-    function updateCoordDisplay() {
-        const selector = document.getElementById('citySelector');
-        const selectedName = selector?.value;
-        if (selectedName) {
-            const city = cities.find(c => c.name === selectedName);
-            if (city) {
-                document.getElementById('coordDisplay').innerHTML = 
-                    `📍 ${city.name}: X=${Math.round(city.x)}, Y=${Math.round(city.y)}<br>
-                     <small>Click on the map to set new position</small>`;
-            }
-        }
-    }
-    
-    function resizeCanvas() {
-        if (!mapLoaded) return;
-        
-        const wrapper = document.querySelector('.map-wrapper');
-        const maxWidth = wrapper.clientWidth - 20;
-        
-        const scale = Math.min(1, maxWidth / imgWidth);
-        canvas.width = imgWidth;
-        canvas.height = imgHeight;
-        canvas.style.width = `${imgWidth * scale}px`;
-        canvas.style.height = `${imgHeight * scale}px`;
-        
-        drawMap();
-    }
-    
+    // Draw ONLY the map and the target city highlight (NO city names visible)
     function drawMap(clickX = null, clickY = null) {
         if (!mapLoaded) return;
         
-        ctx.clearRect(0, 0, imgWidth, imgHeight);
-        ctx.drawImage(mapImage, 0, 0, imgWidth, imgHeight);
+        ctx.clearRect(0, 0, 1024, 500);
+        ctx.drawImage(mapImage, 0, 0, 1024, 500);
         
-        // In admin mode, show ALL city markers with names
-        if (adminMode) {
-            for (let city of cities) {
-                ctx.beginPath();
-                ctx.arc(city.x, city.y, 8, 0, Math.PI * 2);
-                ctx.fillStyle = "#ff6600";
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(city.x, city.y, 4, 0, Math.PI * 2);
-                ctx.fillStyle = "#ffffff";
-                ctx.fill();
-                ctx.font = "bold 14px Arial";
-                ctx.fillStyle = "#ff0000";
-                ctx.shadowBlur = 3;
-                ctx.shadowColor = "black";
-                ctx.fillText(city.name, city.x + 10, city.y - 5);
-                ctx.shadowBlur = 0;
-            }
-        } else {
-            // Normal game mode: NO city names visible
-            // Only show the target city highlight
-            if (currentCity) {
-                ctx.beginPath();
-                ctx.arc(currentCity.x, currentCity.y, 14, 0, Math.PI * 2);
-                ctx.strokeStyle = "#ff3300";
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(currentCity.x, currentCity.y, 7, 0, Math.PI * 2);
-                ctx.fillStyle = "#ff6600";
-                ctx.fill();
-            }
+        // NO city names or dots visible - only the target city hint
+        if (currentCity) {
+            // Draw a subtle pulsing circle around the target city (so players know WHERE to look?)
+            // Actually, for MapTap, you shouldn't show the target at all. 
+            // But let's add a small dot that ONLY appears AFTER they click? No.
+            // For pure MapTap style: NOTHING visible. Players must know geography.
         }
         
-        // Show click location
+        // Show where the user clicked (feedback)
         if (clickX && clickY) {
             ctx.beginPath();
-            ctx.arc(clickX, clickY, 16, 0, Math.PI * 2);
+            ctx.arc(clickX, clickY, 14, 0, Math.PI * 2);
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 3;
             ctx.stroke();
             ctx.beginPath();
-            ctx.arc(clickX, clickY, 8, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255,255,255,0.5)";
+            ctx.arc(clickX, clickY, 7, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.6)";
             ctx.fill();
+            
+            // Draw line to target? No, that would give it away.
         }
     }
     
     mapImage.onload = function() {
-        imgWidth = mapImage.width;
-        imgHeight = mapImage.height;
         mapLoaded = true;
-        
-        canvas.width = imgWidth;
-        canvas.height = imgHeight;
-        
-        const wrapper = document.querySelector('.map-wrapper');
-        const maxWidth = wrapper.clientWidth - 20;
-        const scale = Math.min(1, maxWidth / imgWidth);
-        canvas.style.width = `${imgWidth * scale}px`;
-        canvas.style.height = `${imgHeight * scale}px`;
-        
         drawMap();
-        
-        window.addEventListener('resize', () => {
-            const newScale = Math.min(1, (wrapper.clientWidth - 20) / imgWidth);
-            canvas.style.width = `${imgWidth * newScale}px`;
-            canvas.style.height = `${imgHeight * newScale}px`;
-            drawMap();
-        });
     };
     
     mapImage.onerror = function() {
-        document.getElementById('message').innerHTML = "⚠️ Map image not found. Make sure turkey-map.png is uploaded.";
+        document.getElementById('message').innerHTML = "⚠️ Map image not found. Please upload turkey-map.png";
         document.getElementById('message').style.background = "#8b3c2c";
     };
-    
-    mapImage.src = 'turkey-map.png';
     
     function getRandomCity() {
         if (usedCities.length === cities.length) usedCities = [];
@@ -329,118 +212,71 @@
     }
     
     function calculateScore(distancePixels) {
+        // Rough conversion: 1 pixel ≈ 5 km in Turkey on a 1024x500 map
         const distanceKm = distancePixels * 5;
-        if (distanceKm < 30) return { points: 100, grade: "perfect", text: "🎯 PERFECT! 100 points!" };
-        if (distanceKm < 80) return { points: 70, grade: "good", text: "👍 GOOD! 70 points" };
-        if (distanceKm < 150) return { points: 40, grade: "close", text: "📌 CLOSE! 40 points" };
-        if (distanceKm < 250) return { points: 20, grade: "far", text: "🔍 FAR! 20 points" };
-        return { points: 0, grade: "miss", text: "❌ MISS! 0 points" };
+        
+        if (distanceKm < 30) return { points: 100, grade: "perfect", text: "🎯 PERFECT! 100 points!", km: distanceKm };
+        if (distanceKm < 80) return { points: 70, grade: "good", text: "👍 GOOD! 70 points", km: distanceKm };
+        if (distanceKm < 150) return { points: 40, grade: "close", text: "📌 CLOSE! 40 points", km: distanceKm };
+        if (distanceKm < 250) return { points: 20, grade: "far", text: "🔍 FAR! 20 points", km: distanceKm };
+        return { points: 0, grade: "miss", text: "❌ MISS! 0 points", km: distanceKm };
     }
     
     function handleCanvasClick(e) {
-        if (!mapLoaded) return;
+        if (!canClick || !currentCity || !mapLoaded) return;
         
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
+        
         const clickX = (e.clientX - rect.left) * scaleX;
         const clickY = (e.clientY - rect.top) * scaleY;
         
-        // Admin mode: set coordinates for selected city
-        if (adminMode) {
-            const selector = document.getElementById('citySelector');
-            const selectedName = selector.value;
-            if (selectedName) {
-                updateCityCoords(selectedName, clickX, clickY);
-                document.getElementById('coordDisplay').innerHTML = 
-                    `✅ Set ${selectedName} to X=${Math.round(clickX)}, Y=${Math.round(clickY)}`;
-            }
-            return;
-        }
-        
-        // Normal game mode
-        if (!canTap || !currentCity) return;
-        
+        // Calculate distance from click to actual city location
         const dx = clickX - currentCity.x;
         const dy = clickY - currentCity.y;
         const distancePixels = Math.sqrt(dx * dx + dy * dy);
         const result = calculateScore(distancePixels);
         
+        // Update score
         score += result.points;
         document.getElementById('score').innerText = score;
         
+        // Show result
         const messageDiv = document.getElementById('message');
         messageDiv.className = `message ${result.grade}`;
-        const distanceKm = Math.round(distancePixels * 5);
-        messageDiv.innerHTML = `${result.text} (${distanceKm} km from ${currentCity.name})`;
+        messageDiv.innerHTML = `${result.text} (${Math.round(result.km)} km from ${currentCity.name})`;
         
-        document.getElementById('feedback').innerHTML = `📍 You tapped ${distanceKm} km away`;
+        document.getElementById('feedback').innerHTML = `📍 You clicked ${Math.round(result.km)} km away from ${currentCity.name}`;
         
+        // Show where they clicked
         drawMap(clickX, clickY);
         
-        canTap = false;
+        // Disable clicking for 1.5 seconds
+        canClick = false;
         setTimeout(() => {
-            canTap = true;
+            canClick = true;
         }, 1500);
     }
     
     function nextCity() {
-        if (!canTap) return;
-        if (adminMode) {
-            alert('Exit admin mode first (click the toggle button)');
-            return;
-        }
+        if (!canClick) return;
+        
         currentCity = getRandomCity();
         document.getElementById('targetCity').innerText = currentCity.name;
         document.getElementById('message').className = "message";
-        document.getElementById('message').innerHTML = "📍 TAP ON THE MAP where you think the city is";
+        document.getElementById('message').innerHTML = "📍 CLICK ON THE MAP where you think the city is located";
         document.getElementById('feedback').innerHTML = "";
         drawMap();
-        canTap = true;
-    }
-    
-    function toggleAdminMode() {
-        adminMode = !adminMode;
-        const controls = document.getElementById('adminControls');
-        const toggleBtn = document.getElementById('toggleModeBtn');
-        
-        if (adminMode) {
-            controls.style.display = 'block';
-            toggleBtn.innerHTML = '🎮 EXIT ADMIN MODE (PLAY GAME)';
-            toggleBtn.style.background = '#8b3c2c';
-            document.getElementById('message').innerHTML = "🔧 ADMIN MODE: Click a city, then click the map to set its position";
-            // Populate city selector
-            const selector = document.getElementById('citySelector');
-            selector.innerHTML = '';
-            cities.forEach(city => {
-                const option = document.createElement('option');
-                option.value = city.name;
-                option.textContent = city.name;
-                selector.appendChild(option);
-            });
-            updateCoordDisplay();
-            selector.onchange = () => updateCoordDisplay();
-            drawMap();
-        } else {
-            controls.style.display = 'none';
-            toggleBtn.innerHTML = '🔧 SET CITY POSITIONS (ADMIN MODE)';
-            toggleBtn.style.background = '#d9a13b';
-            document.getElementById('message').innerHTML = "📍 TAP ON THE MAP where you think the city is";
-            drawMap();
-        }
+        canClick = true;
     }
     
     // Initialize
-    function init() {
-        currentCity = cities[0];
-        document.getElementById('targetCity').innerText = currentCity.name;
-        document.getElementById('toggleModeBtn').addEventListener('click', toggleAdminMode);
-        document.getElementById('saveCoordsBtn').addEventListener('click', saveCoordinates);
-        canvas.addEventListener('click', handleCanvasClick);
-        document.getElementById('nextBtn').addEventListener('click', nextCity);
-    }
+    currentCity = cities[0];
+    document.getElementById('targetCity').innerText = currentCity.name;
     
-    init();
+    canvas.addEventListener('click', handleCanvasClick);
+    document.getElementById('nextBtn').addEventListener('click', nextCity);
 </script>
 </body>
 </html>
