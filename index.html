@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey MapTap - Corrected Coastal Cities</title>
+    <title>Turkey MapTap - 81 Cities Challenge</title>
     <style>
         * { user-select: none; box-sizing: border-box; }
         body {
@@ -112,7 +112,7 @@
         .button-group {
             display: flex;
             gap: 15px;
-            margin-top: 15px;
+            margin: 15px 0 10px 0;
             justify-content: center;
         }
         button {
@@ -129,6 +129,12 @@
         button:active { transform: scale(0.97); }
         #nextBtn { background: #2f6b3c; color: white; }
         #resetBtn { background: #8b6c3c; color: white; }
+        .instruction {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6b4c2c;
+            margin-top: 5px;
+        }
         .points-breakdown {
             background: #2c2b28;
             border-radius: 20px;
@@ -161,7 +167,16 @@
         <canvas id="turkeyCanvas" width="1024" height="500"></canvas>
     </div>
     
-    <div class="message message-info" id="message">📍 CLICK ON THE MAP where you think the city is located</div>
+    <!-- BUTTONS RIGHT BELOW THE MAP -->
+    <div class="button-group">
+        <button id="resetBtn">🔄 PLAY AGAIN</button>
+        <button id="nextBtn">➡️ NEXT CITY</button>
+    </div>
+    
+    <!-- INSTRUCTION TEXT (small, below buttons) -->
+    <div class="instruction">📍 Click on the map where you think the city is located</div>
+    
+    <div class="message message-info" id="message">Ready! Click on the map to start</div>
     <div class="feedback" id="feedback"></div>
     <div class="progress" id="progress">Question 1 of 5</div>
     
@@ -172,11 +187,6 @@
         <div>📌 151-200km: <span>80 pts</span></div>
         <div>🔍 201-300km: <span>40 pts</span></div>
         <div>❌ 300km+: <span>0 pts</span></div>
-    </div>
-    
-    <div class="button-group">
-        <button id="resetBtn">🔄 PLAY AGAIN</button>
-        <button id="nextBtn">➡️ NEXT CITY</button>
     </div>
 </div>
 
@@ -190,8 +200,7 @@
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // CORRECTED bounds - lowered North so coastal cities appear on land
-    // Using Sinop (42.02°N) and Giresun (40.91°N) as references
+    // Corrected bounds for your map
     const TURKEY_NORTH = 41.5;
     const TURKEY_SOUTH = 35.8;
     const TURKEY_WEST = 25.8;
@@ -453,7 +462,7 @@
         document.getElementById('targetCity').innerText = currentCity.name;
         document.getElementById('progress').innerHTML = `📍 Question ${currentQuestionIndex + 1} of ${currentRound.length}`;
         document.getElementById('message').className = "message message-info";
-        document.getElementById('message').innerHTML = "📍 CLICK ON THE MAP where you think the city is located";
+        document.getElementById('message').innerHTML = "Ready! Click on the map to find this city";
         document.getElementById('feedback').innerHTML = "";
         drawMap();
         canClick = true;
@@ -514,7 +523,7 @@
             setTimeout(() => {
                 if (gameActive && !hasAnsweredCurrent) {
                     document.getElementById('message').className = "message message-info";
-                    document.getElementById('message').innerHTML = "📍 CLICK ON THE MAP where you think the city is located";
+                    document.getElementById('message').innerHTML = "Ready! Click on the map to find this city";
                 }
             }, 1500);
             return;
