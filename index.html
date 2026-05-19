@@ -23,6 +23,7 @@
             max-width: 1100px;
             width: 100%;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            position: relative;
         }
         .header {
             display: flex;
@@ -52,9 +53,41 @@
             font-weight: bold;
             font-size: 1.8rem;
         }
+        
+        /* Scoring Info Table */
+        .scoring-info {
+            background: #e8e0c8;
+            border-radius: 20px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border: 2px solid #c9b27c;
+        }
+        .scoring-info h4 {
+            margin: 0 0 8px 0;
+            color: #2c2b28;
+            text-align: center;
+        }
+        .scoring-table {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+        .score-item {
+            background: #2c2b28;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #ffd966;
+        }
+        .score-item span {
+            color: white;
+        }
+        
         .map-container {
             text-align: center;
             margin: 15px 0;
+            position: relative;
         }
         canvas {
             display: inline-block;
@@ -73,7 +106,6 @@
             margin: 10px 0;
             font-weight: bold;
         }
-        /* ALL LIGHT BACKGROUNDS - NO DARK GRAY */
         .message-info {
             background: #e8e0c8;
             color: #2c2b28;
@@ -117,6 +149,8 @@
             background: #2c2b28;
             border-radius: 20px;
             color: #ffd966;
+            position: relative;
+            z-index: 5;
         }
         button {
             background: #d9a13b;
@@ -131,9 +165,22 @@
             color: #2c2b28;
         }
         button:active { transform: scale(0.98); }
+        
+        /* Flashlight/Fireworks Animation Canvas */
+        #fireworksCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+        
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
+            .score-item { font-size: 0.7rem; }
         }
     </style>
 </head>
@@ -142,6 +189,19 @@
     <div class="header">
         <div class="score-box">🏆 SCORE: <span id="score">0</span> / 1000</div>
         <div class="target">🎯 FIND: <span class="city-name" id="targetCity">Loading...</span></div>
+    </div>
+    
+    <!-- Scoring Info Table -->
+    <div class="scoring-info">
+        <h4>📊 SCORING SYSTEM</h4>
+        <div class="scoring-table">
+            <div class="score-item">🎯 0-60km: <span>200 points</span></div>
+            <div class="score-item">👍 61-100km: <span>160 points</span></div>
+            <div class="score-item">✅ 101-150km: <span>120 points</span></div>
+            <div class="score-item">📌 151-200km: <span>80 points</span></div>
+            <div class="score-item">🔍 201-300km: <span>40 points</span></div>
+            <div class="score-item">❌ 300km+: <span>0 points</span></div>
+        </div>
     </div>
     
     <div class="map-container">
@@ -155,7 +215,129 @@
     <button id="resetBtn">🔄 PLAY AGAIN</button>
 </div>
 
+<canvas id="fireworksCanvas"></canvas>
+
 <script>
+    // Fireworks/Flashlight Animation System
+    const fireworksCanvas = document.getElementById('fireworksCanvas');
+    const fwCtx = fireworksCanvas.getContext('2d');
+    let fireworks = [];
+    let animationRunning = false;
+    let animationId = null;
+    
+    function resizeFireworksCanvas() {
+        fireworksCanvas.width = window.innerWidth;
+        fireworksCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeFireworksCanvas);
+    
+    class Particle {
+        constructor(x, y, vx, vy, color, size = 3) {
+            this.x = x;
+            this.y = y;
+            this.vx = vx;
+            this.vy = vy;
+            this.color = color;
+            this.size = size;
+            this.life = 1;
+            this.decay = 0.02;
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += 0.15;
+            this.life -= this.decay;
+            return this.life > 0;
+        }
+        draw(ctx) {
+            ctx.globalAlpha = this.life;
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    
+    class Firework {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.particles = [];
+            const colors = ['#ff3300', '#ffaa00', '#ffff00', '#33ff33', '#33ffcc', '#ff33cc', '#ff00ff', '#00aaff'];
+            for (let i = 0; i < 80; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 5 + 2;
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.sin(angle) * speed;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                this.particles.push(new Particle(x, y, vx, vy, color, Math.random() * 3 + 2));
+            }
+        }
+        update() {
+            this.particles = this.particles.filter(p => p.update());
+            return this.particles.length > 0;
+        }
+        draw(ctx) {
+            this.particles.forEach(p => p.draw(ctx));
+        }
+    }
+    
+    function startFireworks(score) {
+        let count = 0;
+        if (score >= 900) count = 30;
+        else if (score >= 800) count = 20;
+        else if (score >= 700) count = 12;
+        else if (score >= 600) count = 8;
+        else return;
+        
+        if (animationRunning) {
+            fireworks = [];
+            if (animationId) cancelAnimationFrame(animationId);
+        }
+        
+        resizeFireworksCanvas();
+        animationRunning = true;
+        
+        function createFirework() {
+            const x = Math.random() * fireworksCanvas.width;
+            const y = Math.random() * fireworksCanvas.height * 0.7;
+            fireworks.push(new Firework(x, y));
+        }
+        
+        for (let i = 0; i < count; i++) {
+            setTimeout(() => createFirework(), i * 80);
+        }
+        
+        function animate() {
+            if (!animationRunning) return;
+            fwCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+            fireworks = fireworks.filter(fw => {
+                const alive = fw.update();
+                fw.draw(fwCtx);
+                return alive;
+            });
+            if (fireworks.length === 0) {
+                animationRunning = false;
+                cancelAnimationFrame(animationId);
+                animationId = null;
+                fwCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+                return;
+            }
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        animate();
+        
+        setTimeout(() => {
+            if (animationRunning) {
+                animationRunning = false;
+                if (animationId) cancelAnimationFrame(animationId);
+                fwCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+            }
+        }, 5000);
+    }
+    
+    // Main Game Code
     const canvas = document.getElementById('turkeyCanvas');
     const ctx = canvas.getContext('2d');
     
@@ -286,7 +468,6 @@
         { name: "Zonguldak", lat: 41.4564, lon: 31.7975 }
     ];
     
-    // Calculate pixel positions
     const cities = allCities.map(city => ({
         name: city.name,
         lat: city.lat,
@@ -295,7 +476,6 @@
         y: latToY(city.lat)
     }));
     
-    // Game state
     let currentRound = [];
     let currentQuestionIndex = 0;
     let currentCity = null;
@@ -321,10 +501,8 @@
     
     function drawMap(clickX = null, clickY = null) {
         if (!mapLoaded) return;
-        
         ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         ctx.drawImage(mapImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        
         if (clickX && clickY) {
             ctx.beginPath();
             ctx.arc(clickX, clickY, 14, 0, Math.PI * 2);
@@ -344,39 +522,31 @@
     };
     
     mapImage.onerror = function() {
-        const msgDiv = document.getElementById('message');
-        msgDiv.innerHTML = "⚠️ Map image not found! Please upload turkey-map.png";
-        msgDiv.className = "message miss";
+        document.getElementById('message').innerHTML = "⚠️ Map image not found! Please upload turkey-map.png";
+        document.getElementById('message').className = "message miss";
     };
     
     function calculatePoints(distanceKm) {
-        if (distanceKm < 20) return 200;
-        if (distanceKm < 50) return 180;
-        if (distanceKm < 80) return 150;
-        if (distanceKm < 120) return 120;
-        if (distanceKm < 160) return 90;
-        if (distanceKm < 200) return 60;
-        if (distanceKm < 250) return 40;
-        if (distanceKm < 300) return 20;
+        if (distanceKm <= 60) return 200;
+        if (distanceKm <= 100) return 160;
+        if (distanceKm <= 150) return 120;
+        if (distanceKm <= 200) return 80;
+        if (distanceKm <= 300) return 40;
         return 0;
     }
     
     function getGradeText(distanceKm) {
-        if (distanceKm < 20) return "🎯 PERFECT!";
-        if (distanceKm < 50) return "👍 EXCELLENT!";
-        if (distanceKm < 80) return "✅ VERY GOOD!";
-        if (distanceKm < 120) return "📌 GOOD!";
-        if (distanceKm < 160) return "🔍 NOT BAD";
-        if (distanceKm < 200) return "📏 CLOSE";
-        if (distanceKm < 250) return "📍 FAR";
-        if (distanceKm < 300) return "⚠️ VERY FAR";
+        if (distanceKm <= 60) return "🎯 PERFECT! (Within Province!)";
+        if (distanceKm <= 100) return "👍 EXCELLENT!";
+        if (distanceKm <= 150) return "✅ VERY GOOD!";
+        if (distanceKm <= 200) return "📌 GOOD!";
+        if (distanceKm <= 300) return "🔍 NOT BAD";
         return "❌ MISS";
     }
     
     function endGame() {
         gameActive = false;
         const messageDiv = document.getElementById('message');
-        // Use light green background for game complete - NO DARK GRAY!
         messageDiv.className = "message game-complete";
         messageDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
         
@@ -391,6 +561,9 @@
             document.querySelector('.game').appendChild(finalDiv);
         }
         finalDiv.innerHTML = `🏆 FINAL SCORE: ${totalScore} / 1000 🏆`;
+        
+        // Trigger fireworks animation based on score
+        startFireworks(totalScore);
     }
     
     function loadNextQuestion() {
@@ -398,7 +571,6 @@
             endGame();
             return;
         }
-        
         hasAnsweredCurrent = false;
         currentCity = currentRound[currentQuestionIndex];
         document.getElementById('targetCity').innerText = currentCity.name;
@@ -417,16 +589,10 @@
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        
         const clickX = (e.clientX - rect.left) * scaleX;
         const clickY = (e.clientY - rect.top) * scaleY;
-        
         const clickLatLon = pixelToLatLon(clickX, clickY);
-        const distanceKm = haversineDistance(
-            clickLatLon.lat, clickLatLon.lon,
-            currentCity.lat, currentCity.lon
-        );
-        
+        const distanceKm = haversineDistance(clickLatLon.lat, clickLatLon.lon, currentCity.lat, currentCity.lon);
         const points = calculatePoints(distanceKm);
         totalScore += points;
         const gradeText = getGradeText(distanceKm);
@@ -435,27 +601,22 @@
         
         const messageDiv = document.getElementById('message');
         let gradeClass = "miss";
-        if (distanceKm < 20) gradeClass = "perfect";
-        else if (distanceKm < 50) gradeClass = "perfect";
-        else if (distanceKm < 80) gradeClass = "good";
-        else if (distanceKm < 120) gradeClass = "good";
-        else if (distanceKm < 160) gradeClass = "close";
-        else if (distanceKm < 200) gradeClass = "close";
-        else if (distanceKm < 250) gradeClass = "far";
-        else if (distanceKm < 300) gradeClass = "far";
+        if (distanceKm <= 60) gradeClass = "perfect";
+        else if (distanceKm <= 100) gradeClass = "perfect";
+        else if (distanceKm <= 150) gradeClass = "good";
+        else if (distanceKm <= 200) gradeClass = "good";
+        else if (distanceKm <= 300) gradeClass = "close";
         
         messageDiv.className = `message ${gradeClass}`;
         messageDiv.innerHTML = `${gradeText}<br>📍 ${Math.round(distanceKm)} km from ${currentCity.name}<br>⭐ +${points} points!`;
         
-        document.getElementById('feedback').innerHTML = `You clicked ${Math.round(distanceKm)} km away from ${currentCity.name}`;
-        
+        let feedbackText = `You clicked ${Math.round(distanceKm)} km away from ${currentCity.name}`;
+        if (distanceKm <= 60) feedbackText += ` 🎉 Perfect! You hit the province!`;
+        document.getElementById('feedback').innerHTML = feedbackText;
         drawMap(clickX, clickY);
-        
         hasAnsweredCurrent = true;
         canClick = false;
-        
         if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
-        
         nextQuestionTimeout = setTimeout(() => {
             currentQuestionIndex++;
             loadNextQuestion();
@@ -464,24 +625,26 @@
     
     function resetGame() {
         if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
-        
         gameActive = true;
         totalScore = 0;
         currentQuestionIndex = 0;
         hasAnsweredCurrent = false;
         document.getElementById('score').innerText = "0";
-        
         const finalDiv = document.getElementById('finalScore');
         if (finalDiv) finalDiv.remove();
-        
         currentRound = selectRandomCities();
         loadNextQuestion();
+        if (animationRunning) {
+            animationRunning = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            fwCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+        }
     }
     
     resetGame();
-    
     canvas.addEventListener('click', handleCanvasClick);
     document.getElementById('resetBtn').addEventListener('click', resetGame);
+    resizeFireworksCanvas();
 </script>
 </body>
 </html>
