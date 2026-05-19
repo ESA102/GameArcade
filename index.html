@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey MapTap - Calibrated Edition</title>
+    <title>Turkey MapTap - Corrected Coastal Cities</title>
     <style>
         * { user-select: none; box-sizing: border-box; }
         body {
@@ -190,12 +190,9 @@
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // CALIBRATED bounds using multiple reference points:
-    // - Sinop (42.02°N) should be at top edge
-    // - Hatay (36.40°N) should be at bottom edge
-    // - Edirne (26.56°E) should be at left edge
-    // - Van (44.15°E) should be at right edge
-    const TURKEY_NORTH = 42.1;
+    // CORRECTED bounds - lowered North so coastal cities appear on land
+    // Using Sinop (42.02°N) and Giresun (40.91°N) as references
+    const TURKEY_NORTH = 41.5;
     const TURKEY_SOUTH = 35.8;
     const TURKEY_WEST = 25.8;
     const TURKEY_EAST = 44.5;
@@ -226,7 +223,7 @@
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
     
-    // Accurate city coordinates from official sources
+    // All 81 Turkish provinces with accurate coordinates
     const allCities = [
         { name: "Adana", lat: 36.9919, lon: 35.3308 },
         { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
