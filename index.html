@@ -3,119 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey Map Calibration - Place Cities Correctly</title>
+    <title>Turkey MapTap - Self Calibrating Game</title>
     <style>
-        * { box-sizing: border-box; user-select: none; }
+        * { user-select: none; box-sizing: border-box; }
         body {
-            background: #1a472a;
+            background: linear-gradient(145deg, #1a472a, #0e2a1a);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
             font-family: 'Segoe UI', Arial, sans-serif;
             margin: 0;
             padding: 20px;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        .game {
             background: #f5f2e8;
             border-radius: 30px;
             padding: 20px;
+            max-width: 1200px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
         }
-        h1, h2 { text-align: center; margin-top: 0; color: #2c2b28; }
-        .map-container { text-align: center; margin: 20px 0; position: relative; }
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+        .mode-btn {
+            background: #3b2a1f;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+        }
+        .mode-btn.active {
+            background: #d9a13b;
+            color: #2c2b28;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .score-box {
+            background: #2c2b28;
+            padding: 8px 20px;
+            border-radius: 50px;
+            color: #ffd966;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        .target {
+            background: #3b2a1f;
+            padding: 10px 25px;
+            border-radius: 50px;
+            color: white;
+            font-size: 1.3rem;
+        }
+        .city-name {
+            color: #ffaa33;
+            font-weight: bold;
+            font-size: 1.8rem;
+        }
+        .map-container {
+            text-align: center;
+            margin: 15px 0;
+            position: relative;
+        }
         canvas {
+            display: inline-block;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            cursor: crosshair;
+            background: #87CEEB;
             max-width: 100%;
             height: auto;
-            border: 3px solid #c9b27c;
-            border-radius: 10px;
-            cursor: crosshair;
+            border: 2px solid #c9b27c;
         }
-        .controls {
-            background: #2c2b28;
-            padding: 15px;
-            border-radius: 20px;
-            margin-top: 20px;
-            color: white;
-        }
-        .city-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 8px;
-            max-height: 300px;
-            overflow-y: auto;
-            margin: 15px 0;
-            padding: 5px;
-        }
-        .city-btn {
-            background: #4a3a2a;
-            padding: 8px;
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .city-btn.done { background: #2f6b3c; }
-        .city-btn.selected { background: #d9a13b; color: #2c2b28; font-weight: bold; }
-        .status {
-            background: #3b2a1f;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            text-align: center;
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0 10px 0;
+            justify-content: center;
         }
         button {
             background: #d9a13b;
             border: none;
-            padding: 12px 25px;
-            font-size: 16px;
+            padding: 12px 30px;
+            font-size: 1.1rem;
             font-weight: bold;
-            border-radius: 30px;
+            border-radius: 50px;
             cursor: pointer;
-            margin: 5px;
+            color: #2c2b28;
+            min-width: 150px;
         }
-        .save-btn { background: #2f6b3c; color: white; }
-        .reset-btn { background: #8b3c2c; color: white; }
-        .coord-info {
-            font-family: monospace;
-            background: #1a1a1a;
+        button:active { transform: scale(0.97); }
+        #nextBtn { background: #2f6b3c; color: white; }
+        #resetGameBtn { background: #8b6c3c; color: white; }
+        .instruction {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6b4c2c;
+            margin-top: 5px;
+        }
+        .message {
+            padding: 12px;
+            border-radius: 50px;
+            text-align: center;
+            font-size: 1.1rem;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .message-info { background: #e8e0c8; color: #2c2b28; border: 2px solid #c9b27c; }
+        .perfect { background: #a5d6a5; color: #1a472a; border: 2px solid #2f6b3c; }
+        .good { background: #c8e6c8; color: #1a472a; border: 2px solid #4a8c3a; }
+        .close { background: #ffe0b3; color: #5c3a1a; border: 2px solid #c9a13b; }
+        .far { background: #ffcc99; color: #5c3a1a; border: 2px solid #b87a2a; }
+        .miss { background: #ffb3b3; color: #8b0000; border: 2px solid #cc0000; }
+        .game-complete { background: #a5d6a5; color: #1a472a; border: 3px solid #2f6b3c; font-size: 1.3rem; }
+        .feedback {
+            font-size: 0.9rem;
+            margin-top: 8px;
+            text-align: center;
+            background: #e8e0c8;
             padding: 8px;
-            border-radius: 10px;
+            border-radius: 30px;
+            color: #2c2b28;
+        }
+        .progress {
+            text-align: center;
+            font-size: 1rem;
             margin-top: 10px;
+            font-weight: bold;
+            color: #2c2b28;
+            background: #ddd0a8;
+            padding: 8px;
+            border-radius: 30px;
+        }
+        .final-score {
+            text-align: center;
+            font-size: 1.3rem;
+            margin-top: 15px;
+            padding: 15px;
+            background: #2c2b28;
+            border-radius: 20px;
+            color: #ffd966;
+        }
+        .points-breakdown {
+            background: #2c2b28;
+            border-radius: 20px;
+            padding: 10px 15px;
+            margin-top: 10px;
+            color: #ffd966;
+            font-size: 0.85rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+        }
+        .points-breakdown span { color: white; }
+        .calibration-panel {
+            background: #2c2b28;
+            border-radius: 20px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+        .calibration-panel h4 {
+            margin: 0 0 10px 0;
+            color: #ffaa33;
+        }
+        .city-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .city-select {
+            background: #4a3a2a;
+            padding: 5px;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 11px;
+            color: white;
+        }
+        .city-select.calibrated {
+            background: #2f6b3c;
+        }
+        .city-select.selected {
+            background: #d9a13b;
+            color: #2c2b28;
+            font-weight: bold;
+        }
+        .calibration-status {
             font-size: 12px;
+            margin-bottom: 10px;
+            text-align: center;
         }
-        .help-text {
-            background: #3b2a1f;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-        .help-text strong { color: #ffaa33; }
         @media (max-width: 700px) {
-            .city-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+            .city-name { font-size: 1.3rem; }
+            .target { font-size: 1rem; }
+            button { padding: 8px 16px; min-width: 120px; font-size: 0.9rem; }
+            .city-selector { grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); }
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>🗺️ Calibrate Your Turkey Map</h1>
-    <div class="help-text">
-        <strong>📌 HOW TO CALIBRATE CORRECTLY:</strong><br>
-        • <strong>Black Sea cities</strong> (Rize, Trabzon, Samsun, Sinop) should be placed on the <strong>LAND along the BLACK SEA COAST</strong> - NOT in the water!<br>
-        • Look at the map - the coastline is visible. Place the city marker <strong>inside the land area</strong>, right near the coast.<br>
-        • If a city appears in the sea, click it again and move it onto land.<br>
-        • <strong>Start with these coastal cities first:</strong> Rize, Trabzon, Samsun, Sinop, Ordu, Giresun, Zonguldak, Bartın
+<div class="game">
+    <div class="mode-selector">
+        <div class="mode-btn" id="calibrateModeBtn">🔧 CALIBRATE CITIES</div>
+        <div class="mode-btn active" id="playModeBtn">🎮 PLAY GAME</div>
+    </div>
+    
+    <div class="header">
+        <div class="score-box">🏆 SCORE: <span id="score">0</span> / 1000</div>
+        <div class="target">🎯 FIND: <span class="city-name" id="targetCity">Loading...</span></div>
     </div>
     
     <div class="map-container">
         <canvas id="turkeyCanvas" width="1024" height="500"></canvas>
     </div>
     
-    <div class="controls">
-        <div class="status" id="status">Cities placed: <span id="placedCount">0</span> / 81</div>
-        <div class="city-grid" id="cityGrid"></div>
-        <div class="coord-info" id="coordInfo">Select a city, then click on the map where it belongs</div>
-        <button class="save-btn" id="saveBtn">💾 SAVE & PLAY GAME</button>
-        <button class="reset-btn" id="resetBtn">🔄 RESET ALL CITIES</button>
+    <div class="button-group" id="gameButtons">
+        <button id="resetGameBtn">🔄 PLAY AGAIN</button>
+        <button id="nextBtn">➡️ NEXT CITY</button>
+    </div>
+    
+    <div class="instruction" id="instruction">📍 Click on the map where you think the city is located</div>
+    
+    <div class="message message-info" id="message">Ready! Click on the map to start</div>
+    <div class="feedback" id="feedback"></div>
+    <div class="progress" id="progress">Question 1 of 5</div>
+    
+    <div class="points-breakdown">
+        <div>🎯 0-60km: <span>200 pts</span></div>
+        <div>👍 61-100km: <span>160 pts</span></div>
+        <div>✅ 101-150km: <span>120 pts</span></div>
+        <div>📌 151-200km: <span>80 pts</span></div>
+        <div>🔍 201-300km: <span>40 pts</span></div>
+        <div>❌ 300km+: <span>0 pts</span></div>
+    </div>
+    
+    <div class="calibration-panel" id="calibrationPanel">
+        <h4>🔧 CALIBRATION MODE</h4>
+        <div class="calibration-status" id="calibStatus">Cities calibrated: 0 / 20</div>
+        <div class="city-selector" id="citySelector"></div>
+        <div class="instruction" style="color:#aaa; margin-top:10px;">👉 Select a city, then CLICK ON THE MAP where it belongs</div>
+        <button id="saveCalibBtn" style="background:#2f6b3c; margin-top:10px;">💾 SAVE CALIBRATION</button>
     </div>
 </div>
 
@@ -128,87 +271,435 @@
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // All 81 Turkish provinces - FULL LIST
-    const allCities = [
-        "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Aksaray", "Amasya", "Ankara", "Antalya",
-        "Ardahan", "Artvin", "Aydın", "Balıkesir", "Bartın", "Batman", "Bayburt", "Bilecik",
-        "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum",
-        "Denizli", "Diyarbakır", "Düzce", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir",
-        "Gaziantep", "Giresun", "Gümüşhane", "Hakkâri", "Hatay", "Iğdır", "Isparta", "İstanbul",
-        "İzmir", "Kahramanmaraş", "Karabük", "Karaman", "Kars", "Kastamonu", "Kayseri", "Kırıkkale",
-        "Kırklareli", "Kırşehir", "Kilis", "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa",
-        "Mardin", "Mersin", "Muğla", "Muş", "Nevşehir", "Niğde", "Ordu", "Osmaniye", "Rize",
-        "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Şanlıurfa", "Şırnak", "Tekirdağ",
-        "Tokat", "Trabzon", "Tunceli", "Uşak", "Van", "Yalova", "Yozgat", "Zonguldak"
+    // List of major cities (20 most important)
+    const cityNames = [
+        "Istanbul", "Ankara", "Izmir", "Bursa", "Antalya", "Adana", "Gaziantep",
+        "Konya", "Trabzon", "Diyarbakır", "Mersin", "Kayseri", "Samsun", "Erzurum",
+        "Van", "Malatya", "Denizli", "Şanlıurfa", "Eskişehir", "Edirne"
     ];
     
-    // Load saved positions
+    // Default approximate positions (will be overwritten by calibration)
     let cities = [];
-    let currentSelected = null;
+    let currentSelectedCity = null;
     let mapLoaded = false;
+    let isPlayMode = true;
     
-    function loadData() {
-        const saved = localStorage.getItem('turkey_calibration_full');
+    // Game state
+    let currentRound = [];
+    let currentQuestionIndex = 0;
+    let currentCity = null;
+    let totalScore = 0;
+    let canClick = true;
+    let gameActive = true;
+    let hasAnsweredCurrent = false;
+    let showMarkers = false;
+    let clickXMarker = null, clickYMarker = null, correctXMarker = null, correctYMarker = null;
+    
+    // Load calibration from localStorage
+    function loadCalibration() {
+        const saved = localStorage.getItem('turkey_calibration');
         if (saved) {
             cities = JSON.parse(saved);
         } else {
-            cities = allCities.map(name => ({ name: name, x: null, y: null, set: false }));
+            cities = cityNames.map(name => ({ name: name, x: null, y: null, set: false }));
         }
-        updateUI();
+        updateCalibrationUI();
         drawMap();
     }
     
-    function saveData() {
-        localStorage.setItem('turkey_calibration_full', JSON.stringify(cities));
-        updateUI();
+    function saveCalibration() {
+        localStorage.setItem('turkey_calibration', JSON.stringify(cities));
+        alert('✅ Calibration saved! Switch to PLAY MODE to start the game.');
+        updateCalibrationUI();
         drawMap();
-        alert('Positions saved! Click "SAVE & PLAY GAME" to continue.');
     }
     
-    function updateUI() {
+    function updateCalibrationUI() {
         const setCount = cities.filter(c => c.set).length;
-        document.getElementById('placedCount').innerText = setCount;
+        document.getElementById('calibStatus').innerHTML = `Cities calibrated: ${setCount} / ${cities.length}`;
         
-        const grid = document.getElementById('cityGrid');
-        grid.innerHTML = '';
-        
-        // Group cities for easier finding
-        const grouped = [...cities].sort((a,b) => a.name.localeCompare(b.name));
-        
-        grouped.forEach(city => {
+        const container = document.getElementById('citySelector');
+        container.innerHTML = '';
+        cities.forEach(city => {
             const btn = document.createElement('div');
-            btn.className = `city-btn ${city.set ? 'done' : ''} ${currentSelected === city.name ? 'selected' : ''}`;
+            btn.className = `city-select ${city.set ? 'calibrated' : ''} ${currentSelectedCity === city.name ? 'selected' : ''}`;
             btn.innerHTML = `${city.name} ${city.set ? '✓' : ''}`;
             btn.onclick = () => {
-                currentSelected = city.name;
-                updateUI();
-                const cityData = cities.find(c => c.name === currentSelected);
-                if (cityData && cityData.set) {
-                    document.getElementById('coordInfo').innerHTML = `📍 ${cityData.name} is at (${Math.round(cityData.x)}, ${Math.round(cityData.y)}). Click map to MOVE it.`;
-                } else {
-                    document.getElementById('coordInfo').innerHTML = `📍 SELECTED: ${city.name} - Now CLICK ON THE MAP where it belongs`;
-                }
+                currentSelectedCity = city.name;
+                updateCalibrationUI();
                 drawMap();
             };
-            grid.appendChild(btn);
+            container.appendChild(btn);
         });
-        
-        drawMap();
     }
     
-    function drawMap(hintX = null, hintY = null) {
+    function drawMap(clickHintX = null, clickHintY = null) {
         if (!mapLoaded) return;
         
         ctx.clearRect(0, 0, 1024, 500);
         ctx.drawImage(mapImage, 0, 0, 1024, 500);
         
-        // Draw ALL placed city markers
-        for (let city of cities) {
-            if (city.set && city.x && city.y) {
-                ctx.beginPath();
-                ctx.arc(city.x, city.y, 7, 0, Math.PI * 2);
-                ctx.fillStyle = "#ff6600";
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(city.x, city.y, 3, 0, Math.PI * 2);
-                ctx
+        if (!isPlayMode) {
+            // Calibration mode - show all placed city markers
+            for (let city of cities) {
+                if (city.set && city.x && city.y) {
+                    ctx.beginPath();
+                    ctx.arc(city.x, city.y, 8, 0, Math.PI * 2);
+                    ctx.fillStyle = "#ff6600";
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(city.x, city.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fill();
+                    ctx.font = "bold 11px Arial";
+                    ctx.fillStyle = "#000000";
+                    ctx.shadowBlur = 2;
+                    ctx.shadowColor = "white";
+                    ctx.fillText(city.name, city.x + 8, city.y - 4);
+                    ctx.shadowBlur = 0;
+                }
+            }
+            
+            // Highlight selected city
+            if (currentSelectedCity) {
+                const city = cities.find(c => c.name === currentSelectedCity);
+                if (city && city.set) {
+                    ctx.beginPath();
+                    ctx.arc(city.x, city.y, 14, 0, Math.PI * 2);
+                    ctx.strokeStyle = "#00ff00";
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+            }
+        } else {
+            // Play mode - show markers only after answering
+            if (showMarkers) {
+                if (clickXMarker && clickYMarker) {
+                    ctx.beginPath();
+                    ctx.arc(clickXMarker, clickYMarker, 12, 0, Math.PI * 2);
+                    ctx.fillStyle = "white";
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(clickXMarker, clickYMarker, 12, 0, Math.PI * 2);
+                    ctx.strokeStyle = "black";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                if (correctXMarker && correctYMarker) {
+                    ctx.beginPath();
+                    ctx.arc(correctXMarker, correctYMarker, 14, 0, Math.PI * 2);
+                    ctx.fillStyle = "#33ff33";
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(correctXMarker, correctYMarker, 14, 0, Math.PI * 2);
+                    ctx.strokeStyle = "white";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    if (clickXMarker && clickYMarker) {
+                        ctx.beginPath();
+                        ctx.moveTo(clickXMarker, clickYMarker);
+                        ctx.lineTo(correctXMarker, correctYMarker);
+                        ctx.strokeStyle = "#ffaa33";
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([8, 6]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                }
+            }
+        }
+        
+        // Show click hint
+        if (clickHintX && clickHintY && !isPlayMode) {
+            ctx.beginPath();
+            ctx.arc(clickHintX, clickHintY, 12, 0, Math.PI * 2);
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    }
+    
+    mapImage.onload = function() {
+        mapLoaded = true;
+        drawMap();
+    };
+    
+    mapImage.onerror = function() {
+        document.getElementById('message').innerHTML = "⚠️ Map image not found! Please upload turkey-map.png";
+    };
+    
+    // Handle canvas click for calibration
+    function handleCalibrationClick(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const clickX = (e.clientX - rect.left) * scaleX;
+        const clickY = (e.clientY - rect.top) * scaleY;
+        
+        if (currentSelectedCity) {
+            const cityIndex = cities.findIndex(c => c.name === currentSelectedCity);
+            if (cityIndex !== -1) {
+                cities[cityIndex].x = clickX;
+                cities[cityIndex].y = clickY;
+                cities[cityIndex].set = true;
+                saveCalibration();
+                drawMap(clickX, clickY);
+            }
+        }
+    }
+    
+    // Game functions
+    function getCalibratedCities() {
+        return cities.filter(c => c.set).map(c => ({
+            name: c.name,
+            x: c.x,
+            y: c.y
+        }));
+    }
+    
+    function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+    
+    function selectRandomCities() {
+        const calibrated = getCalibratedCities();
+        if (calibrated.length === 0) return [];
+        const shuffled = shuffleArray([...calibrated]);
+        return shuffled.slice(0, Math.min(5, shuffled.length));
+    }
+    
+    function calculatePoints(distancePixels) {
+        const distanceKm = distancePixels * 4.5;
+        if (distanceKm <= 60) return 200;
+        if (distanceKm <= 100) return 160;
+        if (distanceKm <= 150) return 120;
+        if (distanceKm <= 200) return 80;
+        if (distanceKm <= 300) return 40;
+        return 0;
+    }
+    
+    function getGradeText(distancePixels) {
+        const distanceKm = distancePixels * 4.5;
+        if (distanceKm <= 60) return "🎯 PERFECT!";
+        if (distanceKm <= 100) return "👍 EXCELLENT!";
+        if (distanceKm <= 150) return "✅ VERY GOOD!";
+        if (distanceKm <= 200) return "📌 GOOD!";
+        if (distanceKm <= 300) return "🔍 NOT BAD";
+        return "❌ MISS";
+    }
+    
+    function endGame() {
+        gameActive = false;
+        document.getElementById('message').className = "message game-complete";
+        document.getElementById('message').innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
+        document.getElementById('feedback').innerHTML = "";
+        document.getElementById('progress').innerHTML = `🏁 Game finished! Click "PLAY AGAIN" for a new round 🏁`;
+        document.getElementById('nextBtn').style.display = "none";
+        
+        let finalDiv = document.getElementById('finalScore');
+        if (!finalDiv) {
+            finalDiv = document.createElement('div');
+            finalDiv.id = 'finalScore';
+            finalDiv.className = 'final-score';
+            document.querySelector('.game').appendChild(finalDiv);
+        }
+        finalDiv.innerHTML = `🏆 FINAL SCORE: ${totalScore} / 1000 🏆`;
+    }
+    
+    function loadNextQuestion() {
+        const calibrated = getCalibratedCities();
+        if (calibrated.length === 0) {
+            document.getElementById('message').innerHTML = "⚠️ Please calibrate cities first! Click CALIBRATE MODE";
+            return;
+        }
+        
+        if (currentQuestionIndex >= currentRound.length) {
+            endGame();
+            return;
+        }
+        
+        hasAnsweredCurrent = false;
+        showMarkers = false;
+        clickXMarker = null;
+        clickYMarker = null;
+        correctXMarker = null;
+        correctYMarker = null;
+        
+        currentCity = currentRound[currentQuestionIndex];
+        document.getElementById('targetCity').innerText = currentCity.name;
+        document.getElementById('progress').innerHTML = `📍 Question ${currentQuestionIndex + 1} of ${currentRound.length}`;
+        document.getElementById('message').className = "message message-info";
+        document.getElementById('message').innerHTML = "Ready! Click on the map to find this city";
+        document.getElementById('feedback').innerHTML = "";
+        drawMap();
+        canClick = true;
+        document.getElementById('nextBtn').style.display = "block";
+    }
+    
+    function handleGameClick(e) {
+        const calibrated = getCalibratedCities();
+        if (calibrated.length === 0) {
+            document.getElementById('message').innerHTML = "⚠️ No cities calibrated! Switch to CALIBRATE MODE first";
+            return;
+        }
+        
+        if (!gameActive || !canClick || !currentCity || !mapLoaded || hasAnsweredCurrent) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const clickX = (e.clientX - rect.left) * scaleX;
+        const clickY = (e.clientY - rect.top) * scaleY;
+        
+        const dx = clickX - currentCity.x;
+        const dy = clickY - currentCity.y;
+        const distancePixels = Math.sqrt(dx * dx + dy * dy);
+        const points = calculatePoints(distancePixels);
+        totalScore += points;
+        
+        document.getElementById('score').innerText = totalScore;
+        
+        const messageDiv = document.getElementById('message');
+        let gradeClass = "miss";
+        const distanceKm = distancePixels * 4.5;
+        if (distanceKm <= 60) gradeClass = "perfect";
+        else if (distanceKm <= 150) gradeClass = "good";
+        else if (distanceKm <= 300) gradeClass = "close";
+        
+        messageDiv.className = `message ${gradeClass}`;
+        messageDiv.innerHTML = `${getGradeText(distancePixels)}<br>📍 ${Math.round(distanceKm)} km from ${currentCity.name}<br>⭐ +${points} points!`;
+        
+        document.getElementById('feedback').innerHTML = `You clicked ${Math.round(distanceKm)} km away from ${currentCity.name}`;
+        
+        showMarkers = true;
+        clickXMarker = clickX;
+        clickYMarker = clickY;
+        correctXMarker = currentCity.x;
+        correctYMarker = currentCity.y;
+        drawMap();
+        
+        hasAnsweredCurrent = true;
+        canClick = false;
+    }
+    
+    function nextCity() {
+        if (!gameActive) return;
+        if (!hasAnsweredCurrent) {
+            document.getElementById('message').innerHTML = "⚠️ Please click on the map to answer first!";
+            setTimeout(() => {
+                if (gameActive && !hasAnsweredCurrent) {
+                    document.getElementById('message').innerHTML = "Ready! Click on the map to find this city";
+                }
+            }, 1500);
+            return;
+        }
+        currentQuestionIndex++;
+        loadNextQuestion();
+    }
+    
+    function resetGame() {
+        const calibrated = getCalibratedCities();
+        if (calibrated.length === 0) {
+            document.getElementById('message').innerHTML = "⚠️ No cities calibrated! Switch to CALIBRATE MODE first";
+            return;
+        }
+        
+        gameActive = true;
+        totalScore = 0;
+        currentQuestionIndex = 0;
+        hasAnsweredCurrent = false;
+        showMarkers = false;
+        document.getElementById('score').innerText = "0";
+        document.getElementById('nextBtn').style.display = "block";
+        
+        const finalDiv = document.getElementById('finalScore');
+        if (finalDiv) finalDiv.remove();
+        
+        currentRound = selectRandomCities();
+        if (currentRound.length === 0) {
+            document.getElementById('message').innerHTML = "⚠️ Please calibrate cities first!";
+            return;
+        }
+        loadNextQuestion();
+    }
+    
+    // Mode switching
+    function setCalibrateMode() {
+        isPlayMode = false;
+        document.getElementById('calibrateModeBtn').classList.add('active');
+        document.getElementById('playModeBtn').classList.remove('active');
+        document.getElementById('calibrationPanel').style.display = 'block';
+        document.getElementById('gameButtons').style.display = 'none';
+        document.getElementById('instruction').innerHTML = '🔧 CALIBRATION MODE: Select a city, then click on the map where it belongs';
+        document.getElementById('message').className = "message message-info";
+        document.getElementById('message').innerHTML = "🔧 Calibration Mode - Select a city and click on the map";
+        drawMap();
+    }
+    
+    function setPlayMode() {
+        const calibrated = getCalibratedCities();
+        if (calibrated.length === 0) {
+            alert('Please calibrate at least one city first! Go to CALIBRATE MODE and click cities on your map.');
+            return;
+        }
+        
+        isPlayMode = true;
+        document.getElementById('playModeBtn').classList.add('active');
+        document.getElementById('calibrateModeBtn').classList.remove('active');
+        document.getElementById('calibrationPanel').style.display = 'none';
+        document.getElementById('gameButtons').style.display = 'flex';
+        document.getElementById('instruction').innerHTML = '📍 Click on the map where you think the city is located';
+        
+        // Reset game with calibrated cities
+        gameActive = true;
+        totalScore = 0;
+        currentQuestionIndex = 0;
+        hasAnsweredCurrent = false;
+        showMarkers = false;
+        document.getElementById('score').innerText = "0";
+        document.getElementById('nextBtn').style.display = "block";
+        
+        const finalDiv = document.getElementById('finalScore');
+        if (finalDiv) finalDiv.remove();
+        
+        currentRound = selectRandomCities();
+        if (currentRound.length > 0) {
+            loadNextQuestion();
+        } else {
+            document.getElementById('message').innerHTML = "⚠️ Please calibrate more cities first!";
+        }
+        drawMap();
+    }
+    
+    // Event listeners
+    canvas.addEventListener('click', (e) => {
+        if (isPlayMode) {
+            handleGameClick(e);
+        } else {
+            handleCalibrationClick(e);
+        }
+    });
+    
+    document.getElementById('calibrateModeBtn').addEventListener('click', setCalibrateMode);
+    document.getElementById('playModeBtn').addEventListener('click', setPlayMode);
+    document.getElementById('resetGameBtn').addEventListener('click', resetGame);
+    document.getElementById('nextBtn').addEventListener('click', nextCity);
+    document.getElementById('saveCalibBtn').addEventListener('click', saveCalibration);
+    
+    // Initialize
+    loadCalibration();
+    
+    // Start in play mode if cities are calibrated, otherwise calibrate mode
+    const hasCalibrated = cities.some(c => c.set);
+    if (hasCalibrated) {
+        setPlayMode();
+    } else {
+        setCalibrateMode();
+    }
+</script>
+</body>
+</html>
