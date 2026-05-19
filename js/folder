@@ -1,0 +1,211 @@
+// All 81 Turkish provinces
+const provinces = [
+    "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Amasya", "Ankara", "Antalya", "Artvin", "Aydın", "Balıkesir",
+    "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli",
+    "Diyarbakır", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkâri",
+    "Hatay", "Isparta", "Mersin", "İstanbul", "İzmir", "Kars", "Kastamonu", "Kayseri", "Kırklareli", "Kırşehir",
+    "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Kahramanmaraş", "Mardin", "Muğla", "Muş", "Nevşehir",
+    "Niğde", "Ordu", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Tekirdağ", "Tokat",
+    "Trabzon", "Tunceli", "Şanlıurfa", "Uşak", "Van", "Yozgat", "Zonguldak", "Aksaray", "Bayburt", "Karaman",
+    "Kırıkkale", "Batman", "Şırnak", "Bartın", "Ardahan", "Iğdır", "Yalova", "Karabük", "Kilis", "Osmaniye", "Düzce"
+];
+
+// Coordinates for each province (normalized 0-1 for 800x550 canvas)
+const coords = [
+    [0.47,0.68], [0.43,0.72], [0.33,0.55], [0.58,0.43], [0.45,0.57], [0.39,0.55], [0.35,0.72], [0.57,0.32], [0.27,0.68], [0.24,0.57],
+    [0.32,0.52], [0.53,0.53], [0.56,0.53], [0.36,0.49], [0.34,0.64], [0.30,0.51], [0.22,0.50], [0.44,0.51], [0.48,0.58], [0.31,0.63],
+    [0.52,0.70], [0.20,0.43], [0.52,0.56], [0.53,0.49], [0.57,0.50], [0.34,0.53], [0.45,0.70], [0.50,0.55], [0.53,0.49], [0.62,0.67],
+    [0.46,0.76], [0.34,0.66], [0.41,0.76], [0.29,0.44], [0.23,0.64], [0.58,0.48], [0.43,0.46], [0.43,0.60], [0.23,0.46], [0.42,0.55],
+    [0.32,0.49], [0.39,0.60], [0.33,0.56], [0.50,0.60], [0.26,0.62], [0.46,0.68], [0.54,0.69], [0.28,0.69], [0.54,0.56], [0.45,0.60],
+    [0.46,0.63], [0.49,0.56], [0.56,0.40], [0.33,0.50], [0.48,0.54], [0.58,0.68], [0.44,0.45], [0.47,0.53], [0.23,0.44], [0.47,0.56],
+    [0.53,0.41], [0.52,0.55], [0.50,0.72], [0.31,0.60], [0.61,0.60], [0.46,0.59], [0.36,0.48], [0.41,0.60], [0.52,0.48], [0.39,0.64],
+    [0.41,0.52], [0.54,0.67], [0.59,0.68], [0.37,0.46], [0.58,0.46], [0.62,0.50], [0.31,0.47], [0.47,0.48], [0.45,0.73], [0.35,0.49]
+];
+
+const canvas = document.getElementById('turkeyCanvas');
+const ctx = canvas.getContext('2d');
+let width = 800, height = 550;
+canvas.width = width;
+canvas.height = height;
+
+let currentTargetIndex = 0;
+let score = 0;
+let highlightedIndex = -1;
+
+function pickNewTarget() {
+    currentTargetIndex = Math.floor(Math.random() * provinces.length);
+    document.getElementById('targetProvinceDisplay').innerText = provinces[currentTargetIndex];
+}
+
+function updateUI() {
+    document.getElementById('scoreValue').innerText = score;
+    document.getElementById('totalProvinces').innerText = provinces.length;
+}
+
+function drawMap() {
+    ctx.clearRect(0, 0, width, height);
+    
+    // Draw Turkey background
+    ctx.fillStyle = "#dbcaa3";
+    ctx.fillRect(0, 0, width, height);
+    
+    // Stylized Turkey outline
+    ctx.beginPath();
+    ctx.moveTo(120,80);
+    ctx.bezierCurveTo(200,40, 350,30, 480,45);
+    ctx.lineTo(620,35);
+    ctx.lineTo(720,75);
+    ctx.lineTo(760,130);
+    ctx.lineTo(730,200);
+    ctx.lineTo(740,280);
+    ctx.lineTo(700,350);
+    ctx.lineTo(680,400);
+    ctx.lineTo(620,450);
+    ctx.lineTo(550,490);
+    ctx.lineTo(480,510);
+    ctx.lineTo(400,515);
+    ctx.lineTo(320,500);
+    ctx.lineTo(250,480);
+    ctx.lineTo(180,440);
+    ctx.lineTo(120,390);
+    ctx.lineTo(80,330);
+    ctx.lineTo(55,270);
+    ctx.lineTo(50,200);
+    ctx.lineTo(70,140);
+    ctx.lineTo(120,80);
+    ctx.fillStyle = "#c9b27c";
+    ctx.fill();
+    ctx.strokeStyle = "#5c4727";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    
+    // Draw all province dots
+    for(let i = 0; i < provinces.length; i++) {
+        let x = coords[i][0] * width;
+        let y = coords[i][1] * height;
+        let isTarget = (i === currentTargetIndex);
+        let isHighlight = (i === highlightedIndex);
+        
+        ctx.beginPath();
+        ctx.arc(x, y, isTarget ? 10 : 7, 0, Math.PI * 2);
+        
+        if(isTarget) {
+            ctx.fillStyle = "#ffb347";
+            ctx.fill();
+            ctx.fillStyle = "#c96f0e";
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fill();
+        } else if(isHighlight) {
+            ctx.fillStyle = "#ffd966";
+            ctx.fill();
+            ctx.fillStyle = "#d48d2b";
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = "#6b4c2c";
+            ctx.fill();
+            ctx.fillStyle = "#4a3018";
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Label for target/highlighted
+        if(isTarget || isHighlight) {
+            ctx.font = "bold 12px 'Segoe UI'";
+            ctx.fillStyle = "#1f2f1c";
+            ctx.fillText(provinces[i].substring(0, 10), x + 12, y - 4);
+        }
+    }
+}
+
+function findClosestProvince(clickX, clickY) {
+    let minDist = 35;
+    let closest = -1;
+    for(let i = 0; i < provinces.length; i++) {
+        let px = coords[i][0] * width;
+        let py = coords[i][1] * height;
+        let dx = px - clickX;
+        let dy = py - clickY;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if(dist < minDist) {
+            minDist = dist;
+            closest = i;
+        }
+    }
+    return closest;
+}
+
+function showMessage(msg, isError = false) {
+    const msgDiv = document.getElementById('gameMessage');
+    msgDiv.innerText = msg;
+    msgDiv.style.backgroundColor = isError ? "#8b3c2c" : "#2f6b3c";
+    setTimeout(() => {
+        msgDiv.style.backgroundColor = "#3b2a1f";
+    }, 800);
+}
+
+function handleCanvasClick(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    let mouseX = (e.clientX - rect.left) * scaleX;
+    let mouseY = (e.clientY - rect.top) * scaleY;
+    
+    const clickedProv = findClosestProvince(mouseX, mouseY);
+    if(clickedProv === -1) {
+        showMessage("❌ Click closer to a province!", true);
+        return;
+    }
+    
+    if(clickedProv === currentTargetIndex) {
+        score++;
+        showMessage(`✅ CORRECT! ${provinces[currentTargetIndex]} ✨ +1 point`, false);
+        pickNewTarget();
+        updateUI();
+        drawMap();
+        highlightedIndex = -1;
+    } else {
+        showMessage(`❌ Wrong! That's ${provinces[clickedProv]}. Target: ${provinces[currentTargetIndex]}`, true);
+        highlightedIndex = clickedProv;
+        drawMap();
+        setTimeout(() => {
+            highlightedIndex = -1;
+            drawMap();
+        }, 900);
+    }
+    drawMap();
+}
+
+function onCanvasMove(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    let mouseX = (e.clientX - rect.left) * scaleX;
+    let mouseY = (e.clientY - rect.top) * scaleY;
+    let near = findClosestProvince(mouseX, mouseY);
+    if(near !== highlightedIndex) {
+        highlightedIndex = near;
+        drawMap();
+    }
+}
+
+function resetGame() {
+    score = 0;
+    pickNewTarget();
+    updateUI();
+    highlightedIndex = -1;
+    drawMap();
+    showMessage("Game reset! Find the new target 🎯", false);
+}
+
+// Initialize game
+pickNewTarget();
+updateUI();
+drawMap();
+canvas.addEventListener('click', handleCanvasClick);
+canvas.addEventListener('mousemove', onCanvasMove);
+canvas.addEventListener('mouseleave', () => {
+    highlightedIndex = -1;
+    drawMap();
+});
+document.getElementById('resetBtn').addEventListener('click', resetGame);
