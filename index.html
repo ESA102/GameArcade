@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey MapTap - 81 Cities Challenge</title>
+    <title>Turkey MapTap - Self Calibrating Game</title>
     <style>
         * { user-select: none; box-sizing: border-box; }
         body {
@@ -20,9 +20,28 @@
             background: #f5f2e8;
             border-radius: 30px;
             padding: 20px;
-            max-width: 1100px;
+            max-width: 1200px;
             width: 100%;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+        .mode-btn {
+            background: #3b2a1f;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+        }
+        .mode-btn.active {
+            background: #d9a13b;
+            color: #2c2b28;
         }
         .header {
             display: flex;
@@ -55,6 +74,7 @@
         .map-container {
             text-align: center;
             margin: 15px 0;
+            position: relative;
         }
         canvas {
             display: inline-block;
@@ -85,7 +105,7 @@
         }
         button:active { transform: scale(0.97); }
         #nextBtn { background: #2f6b3c; color: white; }
-        #resetBtn { background: #8b6c3c; color: white; }
+        #resetGameBtn { background: #8b6c3c; color: white; }
         .instruction {
             text-align: center;
             font-size: 0.9rem;
@@ -148,16 +168,62 @@
             gap: 12px;
         }
         .points-breakdown span { color: white; }
+        .calibration-panel {
+            background: #2c2b28;
+            border-radius: 20px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+        .calibration-panel h4 {
+            margin: 0 0 10px 0;
+            color: #ffaa33;
+        }
+        .city-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .city-select {
+            background: #4a3a2a;
+            padding: 5px;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 11px;
+            color: white;
+        }
+        .city-select.calibrated {
+            background: #2f6b3c;
+        }
+        .city-select.selected {
+            background: #d9a13b;
+            color: #2c2b28;
+            font-weight: bold;
+        }
+        .calibration-status {
+            font-size: 12px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
-            .points-breakdown { font-size: 0.7rem; gap: 8px; }
             button { padding: 8px 16px; min-width: 120px; font-size: 0.9rem; }
+            .city-selector { grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); }
         }
     </style>
 </head>
 <body>
 <div class="game">
+    <div class="mode-selector">
+        <div class="mode-btn" id="calibrateModeBtn">🔧 CALIBRATE CITIES</div>
+        <div class="mode-btn active" id="playModeBtn">🎮 PLAY GAME</div>
+    </div>
+    
     <div class="header">
         <div class="score-box">🏆 SCORE: <span id="score">0</span> / 1000</div>
         <div class="target">🎯 FIND: <span class="city-name" id="targetCity">Loading...</span></div>
@@ -167,12 +233,12 @@
         <canvas id="turkeyCanvas" width="1024" height="500"></canvas>
     </div>
     
-    <div class="button-group">
-        <button id="resetBtn">🔄 PLAY AGAIN</button>
+    <div class="button-group" id="gameButtons">
+        <button id="resetGameBtn">🔄 PLAY AGAIN</button>
         <button id="nextBtn">➡️ NEXT CITY</button>
     </div>
     
-    <div class="instruction">📍 Click on the map where you think the city is located</div>
+    <div class="instruction" id="instruction">📍 Click on the map where you think the city is located</div>
     
     <div class="message message-info" id="message">Ready! Click on the map to start</div>
     <div class="feedback" id="feedback"></div>
@@ -186,212 +252,170 @@
         <div>🔍 201-300km: <span>40 pts</span></div>
         <div>❌ 300km+: <span>0 pts</span></div>
     </div>
+    
+    <div class="calibration-panel" id="calibrationPanel">
+        <h4>🔧 CALIBRATION MODE</h4>
+        <div class="calibration-status" id="calibStatus">Cities calibrated: 0 / 20</div>
+        <div class="city-selector" id="citySelector"></div>
+        <div class="instruction" style="color:#aaa; margin-top:10px;">👉 Select a city, then CLICK ON THE MAP where it belongs</div>
+        <button id="saveCalibBtn" style="background:#2f6b3c; margin-top:10px;">💾 SAVE CALIBRATION</button>
+    </div>
 </div>
 
 <script>
     const canvas = document.getElementById('turkeyCanvas');
     const ctx = canvas.getContext('2d');
-    
     canvas.width = 1024;
     canvas.height = 500;
     
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // CORRECT Turkey geographic bounds from Wikipedia Location Map module
-    const TURKEY_NORTH = 42.5;
-    const TURKEY_SOUTH = 35.5;
-    const TURKEY_WEST = 25.4;
-    const TURKEY_EAST = 45.0;
-    
-    const CANVAS_WIDTH = 1024;
-    const CANVAS_HEIGHT = 500;
-    
-    function latToY(lat) {
-        return ((TURKEY_NORTH - lat) / (TURKEY_NORTH - TURKEY_SOUTH)) * CANVAS_HEIGHT;
-    }
-    
-    function lonToX(lon) {
-        return ((lon - TURKEY_WEST) / (TURKEY_EAST - TURKEY_WEST)) * CANVAS_WIDTH;
-    }
-    
-    function pixelToLatLon(x, y) {
-        return {
-            lon: TURKEY_WEST + (x / CANVAS_WIDTH) * (TURKEY_EAST - TURKEY_WEST),
-            lat: TURKEY_NORTH - (y / CANVAS_HEIGHT) * (TURKEY_NORTH - TURKEY_SOUTH)
-        };
-    }
-    
-    function haversineDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2)**2;
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
-    
-    // ACCURATE coordinates for all 81 provinces from official geographic data
-    const allCities = [
-        { name: "Adana", lat: 36.9919, lon: 35.3308 },
-        { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
-        { name: "Afyonkarahisar", lat: 38.7584, lon: 30.5383 },
-        { name: "Ağrı", lat: 39.7195, lon: 43.0505 },
-        { name: "Aksaray", lat: 38.3747, lon: 34.0289 },
-        { name: "Amasya", lat: 40.6517, lon: 35.8336 },
-        { name: "Ankara", lat: 39.9208, lon: 32.8541 },
-        { name: "Antalya", lat: 36.8969, lon: 30.7133 },
-        { name: "Ardahan", lat: 41.1105, lon: 42.7022 },
-        { name: "Artvin", lat: 41.1825, lon: 41.8189 },
-        { name: "Aydın", lat: 37.8416, lon: 27.8456 },
-        { name: "Balıkesir", lat: 39.6484, lon: 27.8826 },
-        { name: "Bartın", lat: 41.6355, lon: 32.3362 },
-        { name: "Batman", lat: 37.8812, lon: 41.1351 },
-        { name: "Bayburt", lat: 40.2554, lon: 40.2231 },
-        { name: "Bilecik", lat: 40.1431, lon: 29.9794 },
-        { name: "Bingöl", lat: 38.8863, lon: 40.4987 },
-        { name: "Bitlis", lat: 38.4000, lon: 42.1083 },
-        { name: "Bolu", lat: 40.7356, lon: 31.6086 },
-        { name: "Burdur", lat: 37.7203, lon: 30.2908 },
-        { name: "Bursa", lat: 40.1826, lon: 29.0665 },
-        { name: "Çanakkale", lat: 40.1553, lon: 26.4142 },
-        { name: "Çankırı", lat: 40.6000, lon: 33.6167 },
-        { name: "Çorum", lat: 40.5455, lon: 34.9570 },
-        { name: "Denizli", lat: 37.7735, lon: 29.0865 },
-        { name: "Diyarbakır", lat: 37.9144, lon: 40.2306 },
-        { name: "Düzce", lat: 40.8389, lon: 31.1656 },
-        { name: "Edirne", lat: 41.6771, lon: 26.5557 },
-        { name: "Elazığ", lat: 38.6811, lon: 39.2256 },
-        { name: "Erzincan", lat: 39.7464, lon: 39.4925 },
-        { name: "Erzurum", lat: 39.9051, lon: 41.2709 },
-        { name: "Eskişehir", lat: 39.7700, lon: 30.5025 },
-        { name: "Gaziantep", lat: 37.0662, lon: 37.3833 },
-        { name: "Giresun", lat: 40.9128, lon: 38.3894 },
-        { name: "Gümüşhane", lat: 40.4603, lon: 39.4769 },
-        { name: "Hakkâri", lat: 37.5747, lon: 43.7408 },
-        { name: "Hatay", lat: 36.4018, lon: 36.3498 },
-        { name: "Iğdır", lat: 39.9200, lon: 44.0440 },
-        { name: "Isparta", lat: 37.7644, lon: 30.5564 },
-        { name: "İstanbul", lat: 41.0082, lon: 28.9784 },
-        { name: "İzmir", lat: 38.4189, lon: 27.1287 },
-        { name: "Kahramanmaraş", lat: 37.5875, lon: 36.9317 },
-        { name: "Karabük", lat: 41.2061, lon: 32.6194 },
-        { name: "Karaman", lat: 37.1811, lon: 33.2150 },
-        { name: "Kars", lat: 40.6017, lon: 43.0975 },
-        { name: "Kastamonu", lat: 41.3887, lon: 33.7825 },
-        { name: "Kayseri", lat: 38.7239, lon: 35.4801 },
-        { name: "Kırıkkale", lat: 39.8468, lon: 33.5153 },
-        { name: "Kırklareli", lat: 41.7358, lon: 27.2252 },
-        { name: "Kırşehir", lat: 39.1464, lon: 34.1597 },
-        { name: "Kilis", lat: 36.7167, lon: 37.1167 },
-        { name: "Kocaeli", lat: 40.7655, lon: 29.9408 },
-        { name: "Konya", lat: 37.8704, lon: 32.5110 },
-        { name: "Kütahya", lat: 39.4217, lon: 29.9879 },
-        { name: "Malatya", lat: 38.3552, lon: 38.3095 },
-        { name: "Manisa", lat: 38.6133, lon: 27.4250 },
-        { name: "Mardin", lat: 37.3132, lon: 40.7351 },
-        { name: "Mersin", lat: 36.8000, lon: 34.6333 },
-        { name: "Muğla", lat: 37.2153, lon: 28.3636 },
-        { name: "Muş", lat: 38.7347, lon: 41.4911 },
-        { name: "Nevşehir", lat: 38.6250, lon: 34.7167 },
-        { name: "Niğde", lat: 37.9667, lon: 34.6833 },
-        { name: "Ordu", lat: 40.9839, lon: 37.8764 },
-        { name: "Osmaniye", lat: 37.0750, lon: 36.2500 },
-        { name: "Rize", lat: 41.0208, lon: 40.5219 },
-        { name: "Sakarya", lat: 40.7732, lon: 30.3947 },
-        { name: "Samsun", lat: 41.2871, lon: 36.3234 },
-        { name: "Siirt", lat: 37.9311, lon: 41.9453 },
-        { name: "Sinop", lat: 42.0239, lon: 35.1531 },
-        { name: "Sivas", lat: 39.7515, lon: 37.0172 },
-        { name: "Şanlıurfa", lat: 37.1591, lon: 38.7969 },
-        { name: "Şırnak", lat: 37.5163, lon: 42.4610 },
-        { name: "Tekirdağ", lat: 40.9789, lon: 27.5106 },
-        { name: "Tokat", lat: 40.3139, lon: 36.5544 },
-        { name: "Trabzon", lat: 41.0061, lon: 39.7191 },
-        { name: "Tunceli", lat: 39.1075, lon: 39.5489 },
-        { name: "Uşak", lat: 38.6775, lon: 29.4058 },
-        { name: "Van", lat: 38.5012, lon: 43.3730 },
-        { name: "Yalova", lat: 40.6550, lon: 29.2775 },
-        { name: "Yozgat", lat: 39.8200, lon: 34.8094 },
-        { name: "Zonguldak", lat: 41.4564, lon: 31.7975 }
+    // List of major cities (20 most important)
+    const cityNames = [
+        "Istanbul", "Ankara", "Izmir", "Bursa", "Antalya", "Adana", "Gaziantep",
+        "Konya", "Trabzon", "Diyarbakır", "Mersin", "Kayseri", "Samsun", "Erzurum",
+        "Van", "Malatya", "Denizli", "Şanlıurfa", "Eskişehir", "Edirne"
     ];
     
-    const cities = allCities.map(city => ({
-        name: city.name,
-        lat: city.lat,
-        lon: city.lon,
-        x: lonToX(city.lon),
-        y: latToY(city.lat)
-    }));
+    // Default approximate positions (will be overwritten by calibration)
+    let cities = [];
+    let currentSelectedCity = null;
+    let mapLoaded = false;
+    let isPlayMode = true;
     
+    // Game state
     let currentRound = [];
     let currentQuestionIndex = 0;
     let currentCity = null;
     let totalScore = 0;
     let canClick = true;
-    let mapLoaded = false;
     let gameActive = true;
     let hasAnsweredCurrent = false;
-    
     let showMarkers = false;
-    let clickXMarker = null;
-    let clickYMarker = null;
-    let correctXMarker = null;
-    let correctYMarker = null;
+    let clickXMarker = null, clickYMarker = null, correctXMarker = null, correctYMarker = null;
     
-    function shuffleArray(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
+    // Load calibration from localStorage
+    function loadCalibration() {
+        const saved = localStorage.getItem('turkey_calibration');
+        if (saved) {
+            cities = JSON.parse(saved);
+        } else {
+            cities = cityNames.map(name => ({ name: name, x: null, y: null, set: false }));
         }
-        return arr;
+        updateCalibrationUI();
+        drawMap();
     }
     
-    function selectRandomCities() {
-        const shuffled = shuffleArray([...cities]);
-        return shuffled.slice(0, 5);
+    function saveCalibration() {
+        localStorage.setItem('turkey_calibration', JSON.stringify(cities));
+        alert('✅ Calibration saved! Switch to PLAY MODE to start the game.');
+        updateCalibrationUI();
+        drawMap();
     }
     
-    function drawMap() {
+    function updateCalibrationUI() {
+        const setCount = cities.filter(c => c.set).length;
+        document.getElementById('calibStatus').innerHTML = `Cities calibrated: ${setCount} / ${cities.length}`;
+        
+        const container = document.getElementById('citySelector');
+        container.innerHTML = '';
+        cities.forEach(city => {
+            const btn = document.createElement('div');
+            btn.className = `city-select ${city.set ? 'calibrated' : ''} ${currentSelectedCity === city.name ? 'selected' : ''}`;
+            btn.innerHTML = `${city.name} ${city.set ? '✓' : ''}`;
+            btn.onclick = () => {
+                currentSelectedCity = city.name;
+                updateCalibrationUI();
+                drawMap();
+            };
+            container.appendChild(btn);
+        });
+    }
+    
+    function drawMap(clickHintX = null, clickHintY = null) {
         if (!mapLoaded) return;
         
-        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        ctx.drawImage(mapImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.clearRect(0, 0, 1024, 500);
+        ctx.drawImage(mapImage, 0, 0, 1024, 500);
         
-        if (showMarkers) {
-            if (clickXMarker && clickYMarker) {
-                ctx.beginPath();
-                ctx.arc(clickXMarker, clickYMarker, 12, 0, Math.PI * 2);
-                ctx.fillStyle = "white";
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(clickXMarker, clickYMarker, 12, 0, Math.PI * 2);
-                ctx.strokeStyle = "black";
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
-            
-            if (correctXMarker && correctYMarker) {
-                ctx.beginPath();
-                ctx.arc(correctXMarker, correctYMarker, 14, 0, Math.PI * 2);
-                ctx.fillStyle = "#33ff33";
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(correctXMarker, correctYMarker, 14, 0, Math.PI * 2);
-                ctx.strokeStyle = "white";
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                
-                if (clickXMarker && clickYMarker) {
+        if (!isPlayMode) {
+            // Calibration mode - show all placed city markers
+            for (let city of cities) {
+                if (city.set && city.x && city.y) {
                     ctx.beginPath();
-                    ctx.moveTo(clickXMarker, clickYMarker);
-                    ctx.lineTo(correctXMarker, correctYMarker);
-                    ctx.strokeStyle = "#ffaa33";
-                    ctx.lineWidth = 2;
-                    ctx.setLineDash([8, 6]);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
+                    ctx.arc(city.x, city.y, 8, 0, Math.PI * 2);
+                    ctx.fillStyle = "#ff6600";
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(city.x, city.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fill();
+                    ctx.font = "bold 11px Arial";
+                    ctx.fillStyle = "#000000";
+                    ctx.shadowBlur = 2;
+                    ctx.shadowColor = "white";
+                    ctx.fillText(city.name, city.x + 8, city.y - 4);
+                    ctx.shadowBlur = 0;
                 }
             }
+            
+            // Highlight selected city
+            if (currentSelectedCity) {
+                const city = cities.find(c => c.name === currentSelectedCity);
+                if (city && city.set) {
+                    ctx.beginPath();
+                    ctx.arc(city.x, city.y, 14, 0, Math.PI * 2);
+                    ctx.strokeStyle = "#00ff00";
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+            }
+        } else {
+            // Play mode - show markers only after answering
+            if (showMarkers) {
+                if (clickXMarker && clickYMarker) {
+                    ctx.beginPath();
+                    ctx.arc(clickXMarker, clickYMarker, 12, 0, Math.PI * 2);
+                    ctx.fillStyle = "white";
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(clickXMarker, clickYMarker, 12, 0, Math.PI * 2);
+                    ctx.strokeStyle = "black";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                if (correctXMarker && correctYMarker) {
+                    ctx.beginPath();
+                    ctx.arc(correctXMarker, correctYMarker, 14, 0, Math.PI * 2);
+                    ctx.fillStyle = "#33ff33";
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(correctXMarker, correctYMarker, 14, 0, Math.PI * 2);
+                    ctx.strokeStyle = "white";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    if (clickXMarker && clickYMarker) {
+                        ctx.beginPath();
+                        ctx.moveTo(clickXMarker, clickYMarker);
+                        ctx.lineTo(correctXMarker, correctYMarker);
+                        ctx.strokeStyle = "#ffaa33";
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([8, 6]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                }
+            }
+        }
+        
+        // Show click hint
+        if (clickHintX && clickHintY && !isPlayMode) {
+            ctx.beginPath();
+            ctx.arc(clickHintX, clickHintY, 12, 0, Math.PI * 2);
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.stroke();
         }
     }
     
@@ -402,10 +426,54 @@
     
     mapImage.onerror = function() {
         document.getElementById('message').innerHTML = "⚠️ Map image not found! Please upload turkey-map.png";
-        document.getElementById('message').className = "message miss";
     };
     
-    function calculatePoints(distanceKm) {
+    // Handle canvas click for calibration
+    function handleCalibrationClick(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const clickX = (e.clientX - rect.left) * scaleX;
+        const clickY = (e.clientY - rect.top) * scaleY;
+        
+        if (currentSelectedCity) {
+            const cityIndex = cities.findIndex(c => c.name === currentSelectedCity);
+            if (cityIndex !== -1) {
+                cities[cityIndex].x = clickX;
+                cities[cityIndex].y = clickY;
+                cities[cityIndex].set = true;
+                saveCalibration();
+                drawMap(clickX, clickY);
+            }
+        }
+    }
+    
+    // Game functions
+    function getCalibratedCities() {
+        return cities.filter(c => c.set).map(c => ({
+            name: c.name,
+            x: c.x,
+            y: c.y
+        }));
+    }
+    
+    function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+    
+    function selectRandomCities() {
+        const calibrated = getCalibratedCities();
+        if (calibrated.length === 0) return [];
+        const shuffled = shuffleArray([...calibrated]);
+        return shuffled.slice(0, Math.min(5, shuffled.length));
+    }
+    
+    function calculatePoints(distancePixels) {
+        const distanceKm = distancePixels * 4.5;
         if (distanceKm <= 60) return 200;
         if (distanceKm <= 100) return 160;
         if (distanceKm <= 150) return 120;
@@ -414,7 +482,8 @@
         return 0;
     }
     
-    function getGradeText(distanceKm) {
+    function getGradeText(distancePixels) {
+        const distanceKm = distancePixels * 4.5;
         if (distanceKm <= 60) return "🎯 PERFECT!";
         if (distanceKm <= 100) return "👍 EXCELLENT!";
         if (distanceKm <= 150) return "✅ VERY GOOD!";
@@ -442,6 +511,12 @@
     }
     
     function loadNextQuestion() {
+        const calibrated = getCalibratedCities();
+        if (calibrated.length === 0) {
+            document.getElementById('message').innerHTML = "⚠️ Please calibrate cities first! Click CALIBRATE MODE";
+            return;
+        }
+        
         if (currentQuestionIndex >= currentRound.length) {
             endGame();
             return;
@@ -465,38 +540,38 @@
         document.getElementById('nextBtn').style.display = "block";
     }
     
-    function handleCanvasClick(e) {
+    function handleGameClick(e) {
+        const calibrated = getCalibratedCities();
+        if (calibrated.length === 0) {
+            document.getElementById('message').innerHTML = "⚠️ No cities calibrated! Switch to CALIBRATE MODE first";
+            return;
+        }
+        
         if (!gameActive || !canClick || !currentCity || !mapLoaded || hasAnsweredCurrent) return;
         
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        
         const clickX = (e.clientX - rect.left) * scaleX;
         const clickY = (e.clientY - rect.top) * scaleY;
         
-        const clickLatLon = pixelToLatLon(clickX, clickY);
-        const distanceKm = haversineDistance(
-            clickLatLon.lat, clickLatLon.lon,
-            currentCity.lat, currentCity.lon
-        );
-        
-        const points = calculatePoints(distanceKm);
+        const dx = clickX - currentCity.x;
+        const dy = clickY - currentCity.y;
+        const distancePixels = Math.sqrt(dx * dx + dy * dy);
+        const points = calculatePoints(distancePixels);
         totalScore += points;
-        const gradeText = getGradeText(distanceKm);
         
         document.getElementById('score').innerText = totalScore;
         
         const messageDiv = document.getElementById('message');
         let gradeClass = "miss";
+        const distanceKm = distancePixels * 4.5;
         if (distanceKm <= 60) gradeClass = "perfect";
-        else if (distanceKm <= 100) gradeClass = "perfect";
         else if (distanceKm <= 150) gradeClass = "good";
-        else if (distanceKm <= 200) gradeClass = "good";
         else if (distanceKm <= 300) gradeClass = "close";
         
         messageDiv.className = `message ${gradeClass}`;
-        messageDiv.innerHTML = `${gradeText}<br>📍 ${Math.round(distanceKm)} km from ${currentCity.name}<br>⭐ +${points} points!`;
+        messageDiv.innerHTML = `${getGradeText(distancePixels)}<br>📍 ${Math.round(distanceKm)} km from ${currentCity.name}<br>⭐ +${points} points!`;
         
         document.getElementById('feedback').innerHTML = `You clicked ${Math.round(distanceKm)} km away from ${currentCity.name}`;
         
@@ -515,10 +590,8 @@
         if (!gameActive) return;
         if (!hasAnsweredCurrent) {
             document.getElementById('message').innerHTML = "⚠️ Please click on the map to answer first!";
-            document.getElementById('message').className = "message miss";
             setTimeout(() => {
                 if (gameActive && !hasAnsweredCurrent) {
-                    document.getElementById('message').className = "message message-info";
                     document.getElementById('message').innerHTML = "Ready! Click on the map to find this city";
                 }
             }, 1500);
@@ -529,6 +602,12 @@
     }
     
     function resetGame() {
+        const calibrated = getCalibratedCities();
+        if (calibrated.length === 0) {
+            document.getElementById('message').innerHTML = "⚠️ No cities calibrated! Switch to CALIBRATE MODE first";
+            return;
+        }
+        
         gameActive = true;
         totalScore = 0;
         currentQuestionIndex = 0;
@@ -541,14 +620,86 @@
         if (finalDiv) finalDiv.remove();
         
         currentRound = selectRandomCities();
+        if (currentRound.length === 0) {
+            document.getElementById('message').innerHTML = "⚠️ Please calibrate cities first!";
+            return;
+        }
         loadNextQuestion();
     }
     
-    resetGame();
+    // Mode switching
+    function setCalibrateMode() {
+        isPlayMode = false;
+        document.getElementById('calibrateModeBtn').classList.add('active');
+        document.getElementById('playModeBtn').classList.remove('active');
+        document.getElementById('calibrationPanel').style.display = 'block';
+        document.getElementById('gameButtons').style.display = 'none';
+        document.getElementById('instruction').innerHTML = '🔧 CALIBRATION MODE: Select a city, then click on the map where it belongs';
+        document.getElementById('message').className = "message message-info";
+        document.getElementById('message').innerHTML = "🔧 Calibration Mode - Select a city and click on the map";
+        drawMap();
+    }
     
-    canvas.addEventListener('click', handleCanvasClick);
-    document.getElementById('resetBtn').addEventListener('click', resetGame);
+    function setPlayMode() {
+        const calibrated = getCalibratedCities();
+        if (calibrated.length === 0) {
+            alert('Please calibrate at least one city first! Go to CALIBRATE MODE and click cities on your map.');
+            return;
+        }
+        
+        isPlayMode = true;
+        document.getElementById('playModeBtn').classList.add('active');
+        document.getElementById('calibrateModeBtn').classList.remove('active');
+        document.getElementById('calibrationPanel').style.display = 'none';
+        document.getElementById('gameButtons').style.display = 'flex';
+        document.getElementById('instruction').innerHTML = '📍 Click on the map where you think the city is located';
+        
+        // Reset game with calibrated cities
+        gameActive = true;
+        totalScore = 0;
+        currentQuestionIndex = 0;
+        hasAnsweredCurrent = false;
+        showMarkers = false;
+        document.getElementById('score').innerText = "0";
+        document.getElementById('nextBtn').style.display = "block";
+        
+        const finalDiv = document.getElementById('finalScore');
+        if (finalDiv) finalDiv.remove();
+        
+        currentRound = selectRandomCities();
+        if (currentRound.length > 0) {
+            loadNextQuestion();
+        } else {
+            document.getElementById('message').innerHTML = "⚠️ Please calibrate more cities first!";
+        }
+        drawMap();
+    }
+    
+    // Event listeners
+    canvas.addEventListener('click', (e) => {
+        if (isPlayMode) {
+            handleGameClick(e);
+        } else {
+            handleCalibrationClick(e);
+        }
+    });
+    
+    document.getElementById('calibrateModeBtn').addEventListener('click', setCalibrateMode);
+    document.getElementById('playModeBtn').addEventListener('click', setPlayMode);
+    document.getElementById('resetGameBtn').addEventListener('click', resetGame);
     document.getElementById('nextBtn').addEventListener('click', nextCity);
+    document.getElementById('saveCalibBtn').addEventListener('click', saveCalibration);
+    
+    // Initialize
+    loadCalibration();
+    
+    // Start in play mode if cities are calibrated, otherwise calibrate mode
+    const hasCalibrated = cities.some(c => c.set);
+    if (hasCalibrated) {
+        setPlayMode();
+    } else {
+        setCalibrateMode();
+    }
 </script>
 </body>
 </html>
