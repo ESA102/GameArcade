@@ -64,6 +64,7 @@
             background: #87CEEB;
             max-width: 100%;
             height: auto;
+            border: 2px solid #c9b27c;
         }
         .message {
             padding: 12px;
@@ -119,27 +120,30 @@
         }
         .button-group {
             display: flex;
-            gap: 10px;
-            margin-top: 10px;
+            gap: 15px;
+            margin-top: 15px;
+            justify-content: center;
         }
         button {
             background: #d9a13b;
             border: none;
-            padding: 10px 25px;
+            padding: 12px 30px;
             font-size: 1.1rem;
             font-weight: bold;
             border-radius: 50px;
             cursor: pointer;
-            flex: 1;
             color: #2c2b28;
+            min-width: 150px;
         }
-        button:active { transform: scale(0.98); }
+        button:active { transform: scale(0.97); }
         #nextBtn {
             background: #2f6b3c;
             color: white;
         }
-        #nextBtn:active { transform: scale(0.98); }
-        
+        #resetBtn {
+            background: #8b6c3c;
+            color: white;
+        }
         .points-breakdown {
             background: #2c2b28;
             border-radius: 20px;
@@ -153,11 +157,11 @@
             gap: 12px;
         }
         .points-breakdown span { color: white; }
-        
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
             .points-breakdown { font-size: 0.7rem; gap: 8px; }
+            button { padding: 8px 16px; min-width: 120px; font-size: 0.9rem; }
         }
     </style>
 </head>
@@ -201,7 +205,7 @@
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png';
     
-    // Corrected Turkey geographic bounds from Wikipedia Location Map module
+    // CORRECT Turkey geographic bounds from Wikipedia Location Map module
     const TURKEY_NORTH = 42.5;
     const TURKEY_SOUTH = 35.5;
     const TURKEY_WEST = 25.4;
@@ -233,33 +237,16 @@
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
     
-    // Accurate city coordinates from authoritative sources
+    // ACCURATE city coordinates from official sources
     const allCities = [
-        { name: "Istanbul", lat: 41.00945, lon: 28.95370 },
-        { name: "Ankara", lat: 39.9208, lon: 32.8541 },
-        { name: "Izmir", lat: 38.4189, lon: 27.1287 },
-        { name: "Bursa", lat: 40.1826, lon: 29.0665 },
-        { name: "Antalya", lat: 36.8969, lon: 30.7133 },
         { name: "Adana", lat: 36.9919, lon: 35.3308 },
-        { name: "Gaziantep", lat: 37.0662, lon: 37.3833 },
-        { name: "Konya", lat: 37.8704, lon: 32.5110 },
-        { name: "Trabzon", lat: 41.0061, lon: 39.7191 },
-        { name: "Diyarbakır", lat: 37.9144, lon: 40.2306 },
-        { name: "Mersin", lat: 36.8000, lon: 34.6333 },
-        { name: "Kayseri", lat: 38.7239, lon: 35.4801 },
-        { name: "Samsun", lat: 41.2871, lon: 36.3234 },
-        { name: "Erzurum", lat: 39.9051, lon: 41.2709 },
-        { name: "Van", lat: 38.6658, lon: 44.1492 },
-        { name: "Malatya", lat: 38.3552, lon: 38.3095 },
-        { name: "Denizli", lat: 37.7735, lon: 29.0865 },
-        { name: "Şanlıurfa", lat: 37.1591, lon: 38.7969 },
-        { name: "Eskişehir", lat: 39.7700, lon: 30.5025 },
-        { name: "Edirne", lat: 41.6771, lon: 26.5557 },
         { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
         { name: "Afyonkarahisar", lat: 38.7584, lon: 30.5383 },
         { name: "Ağrı", lat: 39.7195, lon: 43.0505 },
         { name: "Aksaray", lat: 38.3747, lon: 34.0289 },
         { name: "Amasya", lat: 40.6517, lon: 35.8336 },
+        { name: "Ankara", lat: 39.9208, lon: 32.8541 },
+        { name: "Antalya", lat: 36.8969, lon: 30.7133 },
         { name: "Ardahan", lat: 41.1105, lon: 42.7022 },
         { name: "Artvin", lat: 41.1825, lon: 41.8189 },
         { name: "Aydın", lat: 37.8416, lon: 27.8456 },
@@ -272,31 +259,44 @@
         { name: "Bitlis", lat: 38.4000, lon: 42.1083 },
         { name: "Bolu", lat: 40.7356, lon: 31.6086 },
         { name: "Burdur", lat: 37.7203, lon: 30.2908 },
+        { name: "Bursa", lat: 40.1826, lon: 29.0665 },
         { name: "Çanakkale", lat: 40.1553, lon: 26.4142 },
         { name: "Çankırı", lat: 40.6000, lon: 33.6167 },
-        { name: "Çorum", lat: 40.5492, lon: 34.9536 },
+        { name: "Çorum", lat: 40.5455, lon: 34.9570 },
+        { name: "Denizli", lat: 37.7735, lon: 29.0865 },
+        { name: "Diyarbakır", lat: 37.9144, lon: 40.2306 },
         { name: "Düzce", lat: 40.8389, lon: 31.1656 },
+        { name: "Edirne", lat: 41.6771, lon: 26.5557 },
         { name: "Elazığ", lat: 38.6811, lon: 39.2256 },
         { name: "Erzincan", lat: 39.7464, lon: 39.4925 },
+        { name: "Erzurum", lat: 39.9051, lon: 41.2709 },
+        { name: "Eskişehir", lat: 39.7700, lon: 30.5025 },
+        { name: "Gaziantep", lat: 37.0662, lon: 37.3833 },
         { name: "Giresun", lat: 40.9128, lon: 38.3894 },
         { name: "Gümüşhane", lat: 40.4603, lon: 39.4769 },
         { name: "Hakkâri", lat: 37.5747, lon: 43.7408 },
         { name: "Hatay", lat: 36.4018, lon: 36.3498 },
         { name: "Iğdır", lat: 39.9200, lon: 44.0440 },
         { name: "Isparta", lat: 37.7644, lon: 30.5564 },
+        { name: "Istanbul", lat: 41.0082, lon: 28.9784 },
+        { name: "Izmir", lat: 38.4189, lon: 27.1287 },
         { name: "Kahramanmaraş", lat: 37.5875, lon: 36.9317 },
         { name: "Karabük", lat: 41.2061, lon: 32.6194 },
         { name: "Karaman", lat: 37.1811, lon: 33.2150 },
         { name: "Kars", lat: 40.6017, lon: 43.0975 },
         { name: "Kastamonu", lat: 41.3887, lon: 33.7825 },
+        { name: "Kayseri", lat: 38.7239, lon: 35.4801 },
         { name: "Kilis", lat: 36.7167, lon: 37.1167 },
         { name: "Kırıkkale", lat: 39.8468, lon: 33.5153 },
         { name: "Kırklareli", lat: 41.7358, lon: 27.2252 },
         { name: "Kırşehir", lat: 39.1464, lon: 34.1597 },
         { name: "Kocaeli", lat: 40.7655, lon: 29.9408 },
+        { name: "Konya", lat: 37.8704, lon: 32.5110 },
         { name: "Kütahya", lat: 39.4217, lon: 29.9879 },
+        { name: "Malatya", lat: 38.3552, lon: 38.3095 },
         { name: "Manisa", lat: 38.6133, lon: 27.4250 },
         { name: "Mardin", lat: 37.3132, lon: 40.7351 },
+        { name: "Mersin", lat: 36.8000, lon: 34.6333 },
         { name: "Muğla", lat: 37.2153, lon: 28.3636 },
         { name: "Muş", lat: 38.7347, lon: 41.4911 },
         { name: "Nevşehir", lat: 38.6250, lon: 34.7167 },
@@ -305,14 +305,18 @@
         { name: "Osmaniye", lat: 37.0750, lon: 36.2500 },
         { name: "Rize", lat: 41.0208, lon: 40.5219 },
         { name: "Sakarya", lat: 40.7732, lon: 30.3947 },
+        { name: "Samsun", lat: 41.2871, lon: 36.3234 },
         { name: "Siirt", lat: 37.9311, lon: 41.9453 },
         { name: "Sinop", lat: 42.0239, lon: 35.1531 },
         { name: "Sivas", lat: 39.7515, lon: 37.0172 },
+        { name: "Şanlıurfa", lat: 37.1591, lon: 38.7969 },
         { name: "Şırnak", lat: 37.5163, lon: 42.4610 },
         { name: "Tekirdağ", lat: 40.9789, lon: 27.5106 },
         { name: "Tokat", lat: 40.3139, lon: 36.5544 },
+        { name: "Trabzon", lat: 41.0061, lon: 39.7191 },
         { name: "Tunceli", lat: 39.1075, lon: 39.5489 },
         { name: "Uşak", lat: 38.6775, lon: 29.4058 },
+        { name: "Van", lat: 38.6658, lon: 44.1492 },
         { name: "Yalova", lat: 40.6550, lon: 29.2775 },
         { name: "Yozgat", lat: 39.8200, lon: 34.8094 },
         { name: "Zonguldak", lat: 41.4564, lon: 31.7975 }
@@ -386,7 +390,6 @@
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 
-                // Connecting line
                 if (clickXMarker && clickYMarker) {
                     ctx.beginPath();
                     ctx.moveTo(clickXMarker, clickYMarker);
@@ -468,6 +471,9 @@
         document.getElementById('feedback').innerHTML = "";
         drawMap();
         canClick = true;
+        
+        // Make sure NEXT CITY button is visible
+        document.getElementById('nextBtn').style.display = "block";
     }
     
     function handleCanvasClick(e) {
