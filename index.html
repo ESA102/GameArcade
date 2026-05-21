@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey MapTap - Fixed Distances</title>
+    <title>Turkey MapTap - Find the City</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -96,15 +96,6 @@
         .far { background: #ffcc99; color: #5c3a1a; border: 2px solid #b87a2a; }
         .miss { background: #ffb3b3; color: #8b0000; border: 2px solid #cc0000; }
         .game-complete { background: #a5d6a5; color: #1a472a; border: 3px solid #2f6b3c; font-size: 1.3rem; }
-        .feedback {
-            font-size: 0.9rem;
-            margin-top: 8px;
-            text-align: center;
-            background: #e8e0c8;
-            padding: 8px;
-            border-radius: 30px;
-            color: #2c2b28;
-        }
         .progress {
             text-align: center;
             font-size: 1rem;
@@ -164,16 +155,15 @@
     <div class="instruction">📍 Click on the map where you think the city is located</div>
     
     <div class="message message-info" id="message">Ready! Click on the map to start</div>
-    <div class="feedback" id="feedback"></div>
     <div class="progress" id="progress">Question 1 of 5</div>
     
     <div class="points-breakdown">
-        <div>🎯 0-60km: <span>200 pts</span></div>
-        <div>👍 61-100km: <span>160 pts</span></div>
-        <div>✅ 101-150km: <span>120 pts</span></div>
-        <div>📌 151-200km: <span>80 pts</span></div>
-        <div>🔍 201-300km: <span>40 pts</span></div>
-        <div>❌ 300km+: <span>0 pts</span></div>
+        <div>🎯 0-150km: <span>200 pts</span></div>
+        <div>👍 151-300km: <span>150 pts</span></div>
+        <div>✅ 301-500km: <span>100 pts</span></div>
+        <div>📌 501-700km: <span>60 pts</span></div>
+        <div>🔍 701-1000km: <span>30 pts</span></div>
+        <div>❌ 1000km+: <span>0 pts</span></div>
     </div>
 </div>
 
@@ -186,16 +176,12 @@
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png?' + Date.now();
     
-    // ============================================
-    // CORRECT MAP BOUNDS - DO NOT CHANGE
-    // These values work with the standard Turkey map
-    // ============================================
-    const NORTH = 42.5;   // Sinop (top)
-    const SOUTH = 35.5;   // Hatay (bottom)
-    const WEST = 25.4;    // Edirne (left)
-    const EAST = 45.0;    // Van (right)
+    // Map bounds
+    const NORTH = 42.5;
+    const SOUTH = 35.5;
+    const WEST = 25.4;
+    const EAST = 45.0;
     
-    // Convert lat/lon to pixel coordinates
     function latToY(lat) {
         return ((NORTH - lat) / (NORTH - SOUTH)) * 500;
     }
@@ -204,7 +190,6 @@
         return ((lon - WEST) / (EAST - WEST)) * 1024;
     }
     
-    // Convert pixel coordinates to lat/lon
     function pixelToLatLon(x, y) {
         return {
             lat: NORTH - (y / 500) * (NORTH - SOUTH),
@@ -212,9 +197,8 @@
         };
     }
     
-    // Haversine formula - accurate distance on Earth
     function haversineDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // Earth radius in km
+        const R = 6371;
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -224,7 +208,6 @@
         return R * c;
     }
     
-    // All 81 cities with correct coordinates
     const cities = [
         { name: "Adana", lat: 36.9919, lon: 35.3308 },
         { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
@@ -309,7 +292,6 @@
         { name: "Zonguldak", lat: 41.4564, lon: 31.7975 }
     ];
     
-    // Calculate pixel positions for markers
     const citiesWithPos = cities.map(city => ({
         name: city.name,
         lat: city.lat,
@@ -384,24 +366,25 @@
     }
     
     mapImage.onload = () => { mapLoaded = true; drawMap(); };
-    mapImage.onerror = () => { document.getElementById('message').innerHTML = "⚠️ Upload turkey-map.png to GitHub"; };
+    mapImage.onerror = () => { document.getElementById('message').innerHTML = "⚠️ Upload turkey-map.png"; };
     
+    // NEW SCORING - much more generous!
     function calculatePoints(distanceKm) {
-        if (distanceKm <= 60) return 200;
-        if (distanceKm <= 100) return 160;
-        if (distanceKm <= 150) return 120;
-        if (distanceKm <= 200) return 80;
-        if (distanceKm <= 300) return 40;
+        if (distanceKm <= 150) return 200;
+        if (distanceKm <= 300) return 150;
+        if (distanceKm <= 500) return 100;
+        if (distanceKm <= 700) return 60;
+        if (distanceKm <= 1000) return 30;
         return 0;
     }
     
     function getGradeText(distanceKm) {
-        if (distanceKm <= 60) return "🎯 PERFECT!";
-        if (distanceKm <= 100) return "👍 EXCELLENT!";
-        if (distanceKm <= 150) return "✅ VERY GOOD!";
-        if (distanceKm <= 200) return "📌 GOOD!";
-        if (distanceKm <= 300) return "🔍 NOT BAD";
-        return "❌ MISS";
+        if (distanceKm <= 150) return "🎯 PERFECT! +200";
+        if (distanceKm <= 300) return "👍 EXCELLENT! +150";
+        if (distanceKm <= 500) return "✅ VERY GOOD! +100";
+        if (distanceKm <= 700) return "📌 GOOD! +60";
+        if (distanceKm <= 1000) return "🔍 NOT BAD +30";
+        return "❌ MISS +0";
     }
     
     function endGame() {
@@ -430,7 +413,6 @@
         document.getElementById('progress').innerHTML = `📍 Question ${currentIndex + 1} of ${currentRound.length}`;
         document.getElementById('message').className = "message message-info";
         document.getElementById('message').innerHTML = "📍 CLICK ON THE MAP";
-        document.getElementById('feedback').innerHTML = "";
         drawMap();
         canClick = true;
         document.getElementById('nextBtn').style.display = "block";
@@ -445,10 +427,7 @@
         const userX = (e.clientX - rect.left) * scaleX;
         const userY = (e.clientY - rect.top) * scaleY;
         
-        // Convert click to real coordinates
         const clickLatLon = pixelToLatLon(userX, userY);
-        
-        // Calculate REAL distance using Haversine
         const distanceKm = haversineDistance(
             clickLatLon.lat, clickLatLon.lon,
             currentCity.lat, currentCity.lon
@@ -461,13 +440,14 @@
         
         const msgDiv = document.getElementById('message');
         let gradeClass = "miss";
-        if (distanceKm <= 60) gradeClass = "perfect";
-        else if (distanceKm <= 150) gradeClass = "good";
-        else if (distanceKm <= 300) gradeClass = "close";
+        if (distanceKm <= 150) gradeClass = "perfect";
+        else if (distanceKm <= 300) gradeClass = "perfect";
+        else if (distanceKm <= 500) gradeClass = "good";
+        else if (distanceKm <= 700) gradeClass = "good";
+        else if (distanceKm <= 1000) gradeClass = "close";
         
         msgDiv.className = `message ${gradeClass}`;
-        msgDiv.innerHTML = `${getGradeText(distanceKm)}<br>📍 ${Math.round(distanceKm)} km from ${currentCity.name}<br>⭐ +${points} pts`;
-        document.getElementById('feedback').innerHTML = `You clicked ${Math.round(distanceKm)} km away from ${currentCity.name}`;
+        msgDiv.innerHTML = `${getGradeText(distanceKm)}<br>📍 ${Math.round(distanceKm)} km from ${currentCity.name}`;
         
         showMarkers = true;
         clickPos = { x: userX, y: userY };
