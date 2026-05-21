@@ -158,12 +158,12 @@
     <div class="progress" id="progress">Question 1 of 5</div>
     
     <div class="points-breakdown">
-        <div>🎯 0-150km: <span>200 pts</span></div>
-        <div>👍 151-300km: <span>150 pts</span></div>
-        <div>✅ 301-500km: <span>100 pts</span></div>
-        <div>📌 501-700km: <span>60 pts</span></div>
-        <div>🔍 701-1000km: <span>30 pts</span></div>
-        <div>❌ 1000km+: <span>0 pts</span></div>
+        <div>🎯 0-80km: <span>200 pts</span></div>
+        <div>👍 81-120km: <span>160 pts</span></div>
+        <div>✅ 121-200km: <span>120 pts</span></div>
+        <div>📌 201-300km: <span>80 pts</span></div>
+        <div>🔍 301-500km: <span>40 pts</span></div>
+        <div>❌ 500km+: <span>0 pts</span></div>
     </div>
 </div>
 
@@ -327,21 +327,23 @@
     mapImage.onload = () => { mapLoaded = true; drawMap(); };
     mapImage.onerror = () => { document.getElementById('message').innerHTML = "⚠️ Upload turkey-map.png"; };
     
+    // UPDATED POINTS CALCULATION
     function calculatePoints(distanceKm) {
-        if (distanceKm <= 150) return 200;
-        if (distanceKm <= 300) return 150;
-        if (distanceKm <= 500) return 100;
-        if (distanceKm <= 700) return 60;
-        if (distanceKm <= 1000) return 30;
+        if (distanceKm <= 80) return 200;
+        if (distanceKm <= 120) return 160;
+        if (distanceKm <= 200) return 120;
+        if (distanceKm <= 300) return 80;
+        if (distanceKm <= 500) return 40;
         return 0;
     }
     
+    // UPDATED GRADE TEXT
     function getGradeText(distanceKm) {
-        if (distanceKm <= 150) return "🎯 PERFECT! +200";
-        if (distanceKm <= 300) return "👍 EXCELLENT! +150";
-        if (distanceKm <= 500) return "✅ VERY GOOD! +100";
-        if (distanceKm <= 700) return "📌 GOOD! +60";
-        if (distanceKm <= 1000) return "🔍 NOT BAD +30";
+        if (distanceKm <= 80) return "🎯 PERFECT! +200";
+        if (distanceKm <= 120) return "👍 EXCELLENT! +160";
+        if (distanceKm <= 200) return "✅ VERY GOOD! +120";
+        if (distanceKm <= 300) return "📌 GOOD! +80";
+        if (distanceKm <= 500) return "🔍 NOT BAD +40";
         return "❌ MISS +0";
     }
     
@@ -398,14 +400,13 @@
         
         const msgDiv = document.getElementById('message');
         let gradeClass = "miss";
-        if (distanceKm <= 150) gradeClass = "perfect";
-        else if (distanceKm <= 300) gradeClass = "perfect";
-        else if (distanceKm <= 500) gradeClass = "good";
-        else if (distanceKm <= 700) gradeClass = "good";
-        else if (distanceKm <= 1000) gradeClass = "close";
+        if (distanceKm <= 80) gradeClass = "perfect";
+        else if (distanceKm <= 120) gradeClass = "perfect";
+        else if (distanceKm <= 200) gradeClass = "good";
+        else if (distanceKm <= 300) gradeClass = "good";
+        else if (distanceKm <= 500) gradeClass = "close";
         
         msgDiv.className = `message ${gradeClass}`;
-        // ONLY show points - NO distance, NO city name
         msgDiv.innerHTML = `${getGradeText(distanceKm)}`;
         
         showMarkers = true;
