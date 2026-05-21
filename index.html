@@ -176,7 +176,6 @@
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png?' + Date.now();
     
-    // Map bounds
     const NORTH = 42.5;
     const SOUTH = 35.5;
     const WEST = 25.4;
@@ -368,7 +367,6 @@
     mapImage.onload = () => { mapLoaded = true; drawMap(); };
     mapImage.onerror = () => { document.getElementById('message').innerHTML = "⚠️ Upload turkey-map.png"; };
     
-    // NEW SCORING - much more generous!
     function calculatePoints(distanceKm) {
         if (distanceKm <= 150) return 200;
         if (distanceKm <= 300) return 150;
@@ -447,7 +445,8 @@
         else if (distanceKm <= 1000) gradeClass = "close";
         
         msgDiv.className = `message ${gradeClass}`;
-        msgDiv.innerHTML = `${getGradeText(distanceKm)}<br>📍 ${Math.round(distanceKm)} km from ${currentCity.name}`;
+        // NO DISTANCE MESSAGE - only the grade and points
+        msgDiv.innerHTML = `${getGradeText(distanceKm)}`;
         
         showMarkers = true;
         clickPos = { x: userX, y: userY };
