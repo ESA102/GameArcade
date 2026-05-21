@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey MapTap - Accurate Distances</title>
+    <title>Turkey MapTap - Corrected Distances</title>
     
-    <!-- FORCE NO CACHING -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -202,7 +201,7 @@
     const mapImage = new Image();
     mapImage.src = 'turkey-map.png?' + Date.now();
     
-    // CORRECT TURKEY BOUNDS - Official Wikipedia Location Map
+    // CORRECT TURKEY BOUNDS
     const NORTH = 42.5;
     const SOUTH = 35.5;
     const WEST = 25.4;
@@ -223,9 +222,9 @@
         };
     }
     
-    // ACCURATE HAVERSINE DISTANCE FORMULA
+    // HAVERSINE DISTANCE - Real geographic distance in km
     function haversineDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // Earth radius in kilometers
+        const R = 6371;
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -235,7 +234,6 @@
         return R * c;
     }
     
-    // ALL 81 CITIES with geographic coordinates
     const cities = [
         { name: "Adana", lat: 36.9919, lon: 35.3308 },
         { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
@@ -320,7 +318,6 @@
         { name: "Zonguldak", lat: 41.4564, lon: 31.7975 }
     ];
     
-    // Calculate pixel positions for drawing
     const citiesWithPos = cities.map(city => ({
         ...city,
         x: lonToX(city.lon),
@@ -368,7 +365,6 @@
                 ctx.lineWidth = 2;
                 ctx.stroke();
             }
-            
             if (correctPos) {
                 ctx.beginPath();
                 ctx.arc(correctPos.x, correctPos.y, 14, 0, Math.PI * 2);
@@ -379,7 +375,6 @@
                 ctx.strokeStyle = "white";
                 ctx.lineWidth = 2;
                 ctx.stroke();
-                
                 if (clickPos) {
                     ctx.beginPath();
                     ctx.moveTo(clickPos.x, clickPos.y);
@@ -395,9 +390,9 @@
     }
     
     mapImage.onload = () => { mapLoaded = true; drawMap(); };
-    mapImage.onerror = () => { document.getElementById('message').innerHTML = "⚠️ Upload turkey-map.png to GitHub"; };
+    mapImage.onerror = () => { document.getElementById('message').innerHTML = "⚠️ Upload turkey-map.png"; };
     
-    // CORRECT SCORING USING REAL KILOMETERS
+    // CORRECTED: Points based on REAL kilometers
     function calculatePoints(distanceKm) {
         if (distanceKm <= 60) return 200;
         if (distanceKm <= 100) return 160;
@@ -407,6 +402,7 @@
         return 0;
     }
     
+    // CORRECTED: Grade based on REAL kilometers
     function getGradeText(distanceKm) {
         if (distanceKm <= 60) return "🎯 PERFECT!";
         if (distanceKm <= 100) return "👍 EXCELLENT!";
@@ -457,10 +453,10 @@
         const userX = (e.clientX - rect.left) * scaleX;
         const userY = (e.clientY - rect.top) * scaleY;
         
-        // Convert click to real latitude/longitude
+        // Convert click to latitude/longitude
         const clickLatLon = pixelToLatLon(userX, userY);
         
-        // Calculate REAL distance using Haversine formula
+        // Calculate REAL distance in kilometers
         const distanceKm = haversineDistance(
             clickLatLon.lat, clickLatLon.lon,
             currentCity.lat, currentCity.lon
