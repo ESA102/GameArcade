@@ -66,7 +66,7 @@
             height: auto;
             border: 2px solid #c9b27c;
         }
-        .button-group { display: flex; gap: 15px; margin: 15px 0 10px 0; justify-content: center; }
+        .button-group { display: flex; gap: 15px; margin: 15px 0 10px 0; justify-content: center; flex-wrap: wrap; }
         button {
             background: #d9a13b;
             border: none;
@@ -81,6 +81,7 @@
         button:active { transform: scale(0.97); }
         #nextBtn { background: #2f6b3c; color: white; }
         #resetBtn { background: #8b6c3c; color: white; }
+        #shareBtn { background: #25D366; color: white; }
         .message {
             padding: 12px;
             border-radius: 50px;
@@ -129,10 +130,47 @@
         }
         .points-breakdown span { color: white; }
         .instruction { text-align: center; font-size: 0.9rem; color: #6b4c2c; margin-top: 5px; }
+        
+        /* Share dropdown menu */
+        .share-menu {
+            position: relative;
+            display: inline-block;
+        }
+        .share-dropdown {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2c2b28;
+            border-radius: 20px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 180px;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .share-dropdown button {
+            background: #4a3a2a;
+            color: white;
+            padding: 8px 15px;
+            min-width: auto;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        .share-dropdown button:hover {
+            background: #6b4c2c;
+        }
+        .share-dropdown.show {
+            display: flex;
+        }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
             button { padding: 8px 16px; min-width: 120px; font-size: 0.9rem; }
+            .points-breakdown { font-size: 0.7rem; gap: 8px; }
         }
     </style>
 </head>
@@ -150,6 +188,14 @@
     <div class="button-group">
         <button id="resetBtn">🔄 PLAY AGAIN</button>
         <button id="nextBtn">➡️ NEXT CITY</button>
+        <div class="share-menu">
+            <button id="shareBtn">📤 SHARE</button>
+            <div class="share-dropdown" id="shareDropdown">
+                <button id="shareWhatsApp">💬 WhatsApp</button>
+                <button id="shareEmail">✉️ Email</button>
+                <button id="shareCopy">📋 Copy Score</button>
+            </div>
+        </div>
     </div>
     
     <div class="instruction">📍 Click on the map where you think the city is located</div>
@@ -271,6 +317,63 @@
     let clickPos = null;
     let correctPos = null;
     
+    // Share dropdown functions
+    function toggleShareDropdown() {
+        const dropdown = document.getElementById('shareDropdown');
+        dropdown.classList.toggle('show');
+    }
+    
+    function closeShareDropdown() {
+        const dropdown = document.getElementById('shareDropdown');
+        dropdown.classList.remove('show');
+    }
+    
+    function getShareMessage() {
+        const percentage = Math.round((totalScore / 1000) * 100);
+        let stars = "";
+        if (totalScore >= 900) stars = "🌟🌟🌟🌟🌟";
+        else if (totalScore >= 800) stars = "🌟🌟🌟🌟";
+        else if (totalScore >= 700) stars = "🌟🌟🌟";
+        else if (totalScore >= 600) stars = "🌟🌟";
+        else if (totalScore >= 500) stars = "🌟";
+        else stars = "💪";
+        
+        return `🎯 Turkey MapTap Challenge\n\nMy score: ${totalScore} / 1000 (${percentage}%)\n${stars}\n\nPlay now: ${window.location.href}`;
+    }
+    
+    function shareViaWhatsApp() {
+        const message = encodeURIComponent(getShareMessage());
+        window.open(`https://wa.me/?text=${message}`, '_blank');
+        closeShareDropdown();
+    }
+    
+    function shareViaEmail() {
+        const subject = encodeURIComponent("My Turkey MapTap Score");
+        const body = encodeURIComponent(getShareMessage());
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        closeShareDropdown();
+    }
+    
+    function copyScoreToClipboard() {
+        const message = getShareMessage();
+        navigator.clipboard.writeText(message).then(() => {
+            const msgDiv = document.getElementById('message');
+            const originalText = msgDiv.innerHTML;
+            msgDiv.innerHTML = "📋 Score copied to clipboard!";
+            msgDiv.className = "message message-info";
+            setTimeout(() => {
+                if (gameActive) {
+                    msgDiv.innerHTML = originalText;
+                } else {
+                    msgDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
+                }
+            }, 2000);
+        }).catch(() => {
+            alert("Press Ctrl+C to copy: " + getShareMessage());
+        });
+        closeShareDropdown();
+    }
+    
     function shuffleArray(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -327,7 +430,6 @@
     mapImage.onload = () => { mapLoaded = true; drawMap(); };
     mapImage.onerror = () => { document.getElementById('message').innerHTML = "⚠️ Upload turkey-map.png"; };
     
-    // UPDATED SCORING - EXACTLY AS REQUESTED
     function calculatePoints(distanceKm) {
         if (distanceKm <= 60) return 200;
         if (distanceKm <= 80) return 160;
@@ -337,7 +439,6 @@
         return 0;
     }
     
-    // UPDATED GRADE TEXT - EXACTLY AS REQUESTED
     function getGradeText(distanceKm) {
         if (distanceKm <= 60) return "🎯 PERFECT! +200";
         if (distanceKm <= 80) return "👍 EXCELLENT! +160";
@@ -445,6 +546,18 @@
     canvas.addEventListener('click', handleClick);
     document.getElementById('resetBtn').addEventListener('click', resetGame);
     document.getElementById('nextBtn').addEventListener('click', nextCity);
+    document.getElementById('shareBtn').addEventListener('click', toggleShareDropdown);
+    document.getElementById('shareWhatsApp').addEventListener('click', shareViaWhatsApp);
+    document.getElementById('shareEmail').addEventListener('click', shareViaEmail);
+    document.getElementById('shareCopy').addEventListener('click', copyScoreToClipboard);
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const shareMenu = document.querySelector('.share-menu');
+        if (shareMenu && !shareMenu.contains(event.target)) {
+            closeShareDropdown();
+        }
+    });
 </script>
 </body>
 </html>
