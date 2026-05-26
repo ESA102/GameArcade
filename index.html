@@ -179,6 +179,48 @@
             border-radius: 50px;
             cursor: pointer;
         }
+        
+        /* Daily limit overlay */
+        .daily-limit-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .daily-limit-overlay.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        .daily-limit-content {
+            background: #f5f2e8;
+            border-radius: 30px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        .daily-limit-content h2 {
+            color: #8b3c2c;
+            margin: 0 0 15px 0;
+        }
+        .daily-limit-content p {
+            color: #2c2b28;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+        .daily-limit-content button {
+            background: #d9a13b;
+            margin-top: 10px;
+        }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
@@ -231,6 +273,17 @@
     </div>
 </div>
 
+<!-- Daily Limit Overlay -->
+<div class="daily-limit-overlay" id="dailyLimitOverlay">
+    <div class="daily-limit-content">
+        <h2>⏰ Daily Challenge Complete!</h2>
+        <p>You've already played today's challenge.</p>
+        <p>Come back tomorrow for a new map challenge!</p>
+        <p>⭐ Your score today: <span id="todaysScore">0</span> / 1000 ⭐</p>
+        <button id="closeDailyLimitBtn">OK</button>
+    </div>
+</div>
+
 <script>
     const canvas = document.getElementById('turkeyCanvas');
     const ctx = canvas.getContext('2d');
@@ -244,6 +297,38 @@
     const SOUTH = 35.5;
     const WEST = 25.4;
     const EAST = 45.0;
+    
+    // Daily limit key
+    const DAILY_KEY = 'turkey_map_daily';
+    
+    function checkDailyLimit() {
+        const today = new Date().toDateString();
+        const saved = localStorage.getItem(DAILY_KEY);
+        if (saved) {
+            const data = JSON.parse(saved);
+            if (data.date === today) {
+                return { allowed: false, score: data.score };
+            }
+        }
+        return { allowed: true, score: null };
+    }
+    
+    function saveDailyScore(score) {
+        const today = new Date().toDateString();
+        localStorage.setItem(DAILY_KEY, JSON.stringify({
+            date: today,
+            score: score
+        }));
+    }
+    
+    function showDailyLimitOverlay(score) {
+        document.getElementById('todaysScore').innerText = score;
+        document.getElementById('dailyLimitOverlay').classList.add('show');
+    }
+    
+    function closeDailyLimitOverlay() {
+        document.getElementById('dailyLimitOverlay').classList.remove('show');
+    }
     
     function latToY(lat) {
         return ((NORTH - lat) / (NORTH - SOUTH)) * 500;
@@ -338,6 +423,23 @@
     let questionPercentages = [];
     let questionIcons = [];
     
+    // Check daily limit before starting
+    const dailyCheck = checkDailyLimit();
+    let gameStarted = false;
+    
+    if (!dailyCheck.allowed) {
+        // Show overlay and disable game
+        showDailyLimitOverlay(dailyCheck.score);
+        gameActive = false;
+        document.getElementById('nextBtn').style.display = "none";
+        document.getElementById('resetBtn').style.display = "none";
+        document.getElementById('shareBtn').style.display = "none";
+        document.getElementById('message').innerHTML = `⏰ You've already played today! Come back tomorrow.`;
+        document.getElementById('message').className = "message miss";
+    } else {
+        gameStarted = true;
+    }
+    
     function shuffleArray(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -406,19 +508,9 @@
     function getIconForPoints(points) {
         if (points >= 190) return "🏅";
         if (points >= 160) return "🏆";
-        if (points >= 120) return "🏅";
-        if (points >= 80) return "🏆";
-        if (points >= 40) return "😁";
+        if (points >= 120) return "⭐";
+        if (points >= 80) return "👍";
         return "💪";
-    }
-    
-    // WhatsApp-compatible icon converter (replaces emojis with text for reliable display)
-    function getWhatsAppIcon(emoji) {
-        if (emoji === "🏅") return "[GOLD]";
-        if (emoji === "🏆") return "[CUP]";
-        if (emoji === "😁") return "[SMILE]";
-        if (emoji === "💪") return "[ARM]";
-        return emoji;
     }
     
     function getPercentageForPoints(points) {
@@ -442,9 +534,7 @@
         
         let scoreLine = "";
         for (let i = 0; i < questionPercentages.length; i++) {
-            let icon = questionIcons[i];
-            // Convert emoji to text for WhatsApp compatibility
-            icon = getWhatsAppIcon(icon);
+            let icon = getIconForPoints(questionPercentages[i] * 2);
             scoreLine += `${questionPercentages[i]}${icon} `;
         }
         scoreLine = scoreLine.trim();
@@ -454,7 +544,7 @@
     
     function shareViaWhatsApp() {
         const message = encodeURIComponent(getShareMessage());
-        window.open(`https://wa.me/?text=${message}`, '_blank');
+        window.open(`https://web.whatsapp.com/send?text=${message}`, '_blank');
         closeShareModal();
     }
     
@@ -480,7 +570,7 @@
                 }
             }, 2000);
         }).catch(() => {
-            alert("Copy this: " + message);
+            alert("Copy this: " + getShareMessage());
         });
         closeShareModal();
     }
@@ -495,9 +585,11 @@
     
     function endGame() {
         gameActive = false;
+        // Save today's score
+        saveDailyScore(totalScore);
         document.getElementById('message').className = "message game-complete";
         document.getElementById('message').innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
-        document.getElementById('progress').innerHTML = `🏁 Game finished! Click "PLAY AGAIN" for a new round 🏁`;
+        document.getElementById('progress').innerHTML = `🏁 Game finished! Come back tomorrow for a new challenge! 🏁`;
         document.getElementById('nextBtn').style.display = "none";
         document.getElementById('shareBtn').style.display = "block";
     }
@@ -577,22 +669,19 @@
     }
     
     function resetGame() {
-        gameActive = true;
-        totalScore = 0;
-        currentIndex = 0;
-        answered = false;
-        showMarkers = false;
-        questionPercentages = [];
-        questionIcons = [];
-        document.getElementById('score').innerText = "0";
-        document.getElementById('nextBtn').style.display = "block";
-        document.getElementById('shareBtn').style.display = "none";
-        
+        // Reset not allowed due to daily limit
+        if (!gameStarted || !gameActive) {
+            document.getElementById('message').innerHTML = "⏰ You can only play once per day!";
+            return;
+        }
+        // This function is kept but not really used since daily limit prevents replay
+    }
+    
+    if (gameStarted) {
         currentRound = selectRandomCities();
         loadNext();
     }
     
-    resetGame();
     canvas.addEventListener('click', handleClick);
     document.getElementById('resetBtn').addEventListener('click', resetGame);
     document.getElementById('nextBtn').addEventListener('click', nextCity);
@@ -601,6 +690,7 @@
     document.getElementById('shareEmail').addEventListener('click', shareViaEmail);
     document.getElementById('shareCopy').addEventListener('click', copyToClipboard);
     document.getElementById('closeModal').addEventListener('click', closeShareModal);
+    document.getElementById('closeDailyLimitBtn').addEventListener('click', closeDailyLimitOverlay);
     
     document.getElementById('shareModal').addEventListener('click', function(e) {
         if (e.target === this) {
