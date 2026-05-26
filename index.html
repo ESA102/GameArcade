@@ -81,7 +81,7 @@
         button:active { transform: scale(0.97); }
         #nextBtn { background: #2f6b3c; color: white; }
         #resetBtn { background: #8b6c3c; color: white; }
-        #shareBtn { background: #25D366; color: white; display: none; min-width: 160px; }
+        #shareBtn { background: #25D366; color: white; min-width: 160px; }
         .message {
             padding: 12px;
             border-radius: 50px;
@@ -121,6 +121,65 @@
         }
         .points-breakdown span { color: white; }
         .instruction { text-align: center; font-size: 0.9rem; color: #6b4c2c; margin-top: 5px; }
+        
+        /* Share Modal */
+        .share-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .share-modal.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        .share-modal-content {
+            background: #f5f2e8;
+            border-radius: 30px;
+            padding: 25px;
+            max-width: 350px;
+            width: 90%;
+            text-align: center;
+        }
+        .share-modal-content h3 {
+            margin: 0 0 15px 0;
+            color: #2c2b28;
+        }
+        .share-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .share-option {
+            background: #2c2b28;
+            color: white;
+            padding: 12px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+        .share-option:active { transform: scale(0.98); }
+        .share-option.whatsapp { background: #25D366; }
+        .share-option.email { background: #3b2a1f; }
+        .share-option.copy { background: #d9a13b; color: #2c2b28; }
+        .close-modal {
+            margin-top: 15px;
+            background: #8b3c2c;
+            color: white;
+            padding: 10px;
+            border-radius: 50px;
+            cursor: pointer;
+        }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
@@ -158,6 +217,19 @@
         <div>📌 101-150km: <span>80 pts</span></div>
         <div>🔍 151-300km: <span>40 pts</span></div>
         <div>❌ 300km+: <span>0 pts</span></div>
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div class="share-modal" id="shareModal">
+    <div class="share-modal-content">
+        <h3>📤 Share Your Score</h3>
+        <div class="share-options">
+            <div class="share-option whatsapp" id="shareWhatsApp">💬 WhatsApp</div>
+            <div class="share-option email" id="shareEmail">✉️ Email</div>
+            <div class="share-option copy" id="shareCopy">📋 Copy to Clipboard</div>
+        </div>
+        <div class="close-modal" id="closeModal">Close</div>
     </div>
 </div>
 
@@ -371,15 +443,54 @@
         const day = now.getDate();
         const dateString = `${month} ${day}`;
         
-        // Build the score line like MapTap: "96🏅 95🏆 96🏅 94🏆 86😁"
         let scoreLine = "";
         for (let i = 0; i < questionPercentages.length; i++) {
             scoreLine += `${questionPercentages[i]}${questionIcons[i]} `;
         }
         scoreLine = scoreLine.trim();
         
-        // Build final message exactly like MapTap
         return `www.turkeymapchallenge.com ${dateString}\n${scoreLine}\nFinal score: ${totalScore}`;
+    }
+    
+    function shareViaWhatsApp() {
+        const message = encodeURIComponent(getShareMessage());
+        window.open(`https://wa.me/?text=${message}`, '_blank');
+        closeShareModal();
+    }
+    
+    function shareViaEmail() {
+        const subject = encodeURIComponent("My Turkey Map Challenge Score");
+        const body = encodeURIComponent(getShareMessage());
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        closeShareModal();
+    }
+    
+    function copyToClipboard() {
+        const message = getShareMessage();
+        navigator.clipboard.writeText(message).then(() => {
+            const msgDiv = document.getElementById('message');
+            const originalText = msgDiv.innerHTML;
+            msgDiv.innerHTML = "📋 Score copied to clipboard! Share it with friends!";
+            msgDiv.className = "message message-info";
+            setTimeout(() => {
+                if (gameActive) {
+                    msgDiv.innerHTML = originalText;
+                } else {
+                    msgDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
+                }
+            }, 2000);
+        }).catch(() => {
+            alert("Copy this: " + message);
+        });
+        closeShareModal();
+    }
+    
+    function showShareModal() {
+        document.getElementById('shareModal').classList.add('show');
+    }
+    
+    function closeShareModal() {
+        document.getElementById('shareModal').classList.remove('show');
     }
     
     function endGame() {
@@ -388,7 +499,6 @@
         document.getElementById('message').innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
         document.getElementById('progress').innerHTML = `🏁 Game finished! Click "PLAY AGAIN" for a new round 🏁`;
         document.getElementById('nextBtn').style.display = "none";
-        document.getElementById('shareBtn').style.display = "block";
         updateScoreBox(true);
     }
     
@@ -429,7 +539,6 @@
         const points = calculatePoints(distanceKm);
         totalScore += points;
         
-        // Store individual question data for sharing
         const percentage = getPercentageForPoints(points);
         const icon = getIconForPoints(points);
         questionPercentages[currentIndex] = percentage;
@@ -467,34 +576,6 @@
         loadNext();
     }
     
-    function shareScore() {
-        const message = getShareMessage();
-        
-        if (navigator.share) {
-            navigator.share({
-                title: 'My Turkey Map Challenge Score',
-                text: message,
-                url: window.location.href
-            }).catch(() => {});
-        } else {
-            navigator.clipboard.writeText(message).then(() => {
-                const msgDiv = document.getElementById('message');
-                const originalText = msgDiv.innerHTML;
-                msgDiv.innerHTML = "📋 Score copied to clipboard! Share it with friends!";
-                msgDiv.className = "message message-info";
-                setTimeout(() => {
-                    if (gameActive) {
-                        msgDiv.innerHTML = originalText;
-                    } else {
-                        msgDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
-                    }
-                }, 2000);
-            }).catch(() => {
-                alert("Copy this: " + message);
-            });
-        }
-    }
-    
     function resetGame() {
         gameActive = true;
         totalScore = 0;
@@ -506,7 +587,6 @@
         document.getElementById('score').innerText = "0";
         updateScoreBox(false);
         document.getElementById('nextBtn').style.display = "block";
-        document.getElementById('shareBtn').style.display = "none";
         
         currentRound = selectRandomCities();
         loadNext();
@@ -516,7 +596,18 @@
     canvas.addEventListener('click', handleClick);
     document.getElementById('resetBtn').addEventListener('click', resetGame);
     document.getElementById('nextBtn').addEventListener('click', nextCity);
-    document.getElementById('shareBtn').addEventListener('click', shareScore);
+    document.getElementById('shareBtn').addEventListener('click', showShareModal);
+    document.getElementById('shareWhatsApp').addEventListener('click', shareViaWhatsApp);
+    document.getElementById('shareEmail').addEventListener('click', shareViaEmail);
+    document.getElementById('shareCopy').addEventListener('click', copyToClipboard);
+    document.getElementById('closeModal').addEventListener('click', closeShareModal);
+    
+    // Close modal when clicking outside
+    document.getElementById('shareModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeShareModal();
+        }
+    });
 </script>
 </body>
 </html>
