@@ -559,27 +559,45 @@
     }
     
     function shareViaWhatsApp() {
+        const message = encodeURIComponent(getShareMessage());
         window.location.href = `whatsapp://send?text=${message}`;
         closeShareModal();
     }
     
     function shareViaEmail() {
-        window.location.href = `mailto:?subject=${encodeURIComponent("My Turkey Map Challenge Score")}&body=${encodeURIComponent(getShareMessage())}`;
+        const subject = encodeURIComponent("My Turkey Map Challenge Score");
+        const body = encodeURIComponent(getShareMessage());
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
         closeShareModal();
     }
     
     function copyToClipboard() {
-        navigator.clipboard.writeText(getShareMessage()).then(() => {
+        const message = getShareMessage();
+        navigator.clipboard.writeText(message).then(() => {
             const msgDiv = document.getElementById('message');
-            const original = msgDiv.innerHTML;
-            msgDiv.innerHTML = "📋 Score copied!";
-            setTimeout(() => { msgDiv.innerHTML = original; }, 2000);
+            const originalText = msgDiv.innerHTML;
+            msgDiv.innerHTML = "📋 Score copied to clipboard!";
+            msgDiv.className = "message message-info";
+            setTimeout(() => {
+                if (gameActive) {
+                    msgDiv.innerHTML = originalText;
+                } else {
+                    msgDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
+                }
+            }, 2000);
+        }).catch(() => {
+            alert("Copy this: " + message);
         });
         closeShareModal();
     }
     
-    function showShareModal() { document.getElementById('shareModal').classList.add('show'); }
-    function closeShareModal() { document.getElementById('shareModal').classList.remove('show'); }
+    function showShareModal() {
+        document.getElementById('shareModal').classList.add('show');
+    }
+    
+    function closeShareModal() {
+        document.getElementById('shareModal').classList.remove('show');
+    }
     
     function endGame() {
         gameActive = false;
