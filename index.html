@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey Map Challenge - Daily Challenge</title>
+    <title>Turkey Map Challenge - No Image Needed</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <style>
         * { user-select: none; box-sizing: border-box; }
         body {
@@ -61,7 +59,7 @@
             border-radius: 20px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
             cursor: crosshair;
-            background: #87CEEB;
+            background: #c9b27c;
             max-width: 100%;
             height: auto;
             border: 2px solid #c9b27c;
@@ -127,7 +125,6 @@
             color: #d9a13b;
             margin-top: 5px;
         }
-        
         .share-modal {
             position: fixed;
             top: 0;
@@ -155,10 +152,6 @@
             width: 90%;
             text-align: center;
         }
-        .share-modal-content h3 {
-            margin: 0 0 15px 0;
-            color: #2c2b28;
-        }
         .share-options {
             display: flex;
             flex-direction: column;
@@ -171,7 +164,6 @@
             border-radius: 50px;
             cursor: pointer;
             font-weight: bold;
-            transition: transform 0.1s;
         }
         .share-option:active { transform: scale(0.98); }
         .share-option.whatsapp { background: #25D366; }
@@ -185,7 +177,6 @@
             border-radius: 50px;
             cursor: pointer;
         }
-        
         .daily-limit-overlay {
             position: fixed;
             top: 0;
@@ -213,24 +204,13 @@
             width: 90%;
             text-align: center;
         }
-        .daily-limit-content h2 {
-            color: #8b3c2c;
-            margin: 0 0 15px 0;
-        }
-        .daily-limit-content p {
-            color: #2c2b28;
-            margin-bottom: 20px;
-            font-size: 1.1rem;
-        }
-        .daily-limit-content button {
-            background: #d9a13b;
-            margin-top: 10px;
-        }
+        .daily-limit-content h2 { color: #8b3c2c; margin: 0 0 15px 0; }
+        .daily-limit-content p { color: #2c2b28; margin-bottom: 20px; }
+        .daily-limit-content button { background: #d9a13b; margin-top: 10px; }
         @media (max-width: 700px) {
             .city-name { font-size: 1.3rem; }
             .target { font-size: 1rem; }
             button { padding: 8px 16px; min-width: 120px; font-size: 0.9rem; }
-            .points-breakdown { font-size: 0.7rem; gap: 8px; }
         }
     </style>
 </head>
@@ -295,27 +275,94 @@
     canvas.width = 1024;
     canvas.height = 500;
     
-    const mapImage = new Image();
-    mapImage.src = 'turkey-map.png?' + Date.now();
+    // DRAW THE MAP DIRECTLY (no external image needed)
+    function drawMapBase() {
+        ctx.clearRect(0, 0, 1024, 500);
+        
+        // Sea background
+        ctx.fillStyle = "#87CEEB";
+        ctx.fillRect(0, 0, 1024, 500);
+        
+        // Turkey land shape
+        ctx.beginPath();
+        ctx.moveTo(180, 120);
+        ctx.bezierCurveTo(220, 100, 320, 90, 420, 95);
+        ctx.lineTo(520, 90);
+        ctx.lineTo(620, 100);
+        ctx.lineTo(720, 130);
+        ctx.lineTo(760, 180);
+        ctx.lineTo(750, 250);
+        ctx.lineTo(720, 320);
+        ctx.lineTo(680, 380);
+        ctx.lineTo(620, 420);
+        ctx.lineTo(550, 450);
+        ctx.lineTo(470, 465);
+        ctx.lineTo(390, 460);
+        ctx.lineTo(310, 440);
+        ctx.lineTo(250, 400);
+        ctx.lineTo(200, 350);
+        ctx.lineTo(170, 290);
+        ctx.lineTo(160, 220);
+        ctx.lineTo(180, 120);
+        ctx.fillStyle = "#c9b27c";
+        ctx.fill();
+        ctx.strokeStyle = "#5c4727";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Add mountains/hills
+        ctx.fillStyle = "#b59a5b";
+        ctx.beginPath();
+        ctx.ellipse(350, 250, 50, 35, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(550, 200, 45, 30, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(720, 280, 40, 25, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
     
-    const NORTH = 42.5;
-    const SOUTH = 35.5;
-    const WEST = 25.4;
-    const EAST = 45.0;
+    // Pre-defined city positions on the drawn map
+    const cityPositions = {
+        "Istanbul": { x: 330, y: 175, lat: 41.0082, lon: 28.9784 },
+        "Ankara": { x: 460, y: 235, lat: 39.9208, lon: 32.8541 },
+        "Izmir": { x: 275, y: 295, lat: 38.4189, lon: 27.1287 },
+        "Bursa": { x: 380, y: 215, lat: 40.1826, lon: 29.0665 },
+        "Antalya": { x: 460, y: 385, lat: 36.8969, lon: 30.7133 },
+        "Adana": { x: 540, y: 375, lat: 36.9919, lon: 35.3308 },
+        "Gaziantep": { x: 600, y: 365, lat: 37.0662, lon: 37.3833 },
+        "Konya": { x: 480, y: 315, lat: 37.8704, lon: 32.5110 },
+        "Trabzon": { x: 690, y: 185, lat: 41.0061, lon: 39.7191 },
+        "Diyarbakır": { x: 680, y: 345, lat: 37.9144, lon: 40.2306 },
+        "Mersin": { x: 520, y: 395, lat: 36.8000, lon: 34.6333 },
+        "Kayseri": { x: 560, y: 275, lat: 38.7239, lon: 35.4801 },
+        "Samsun": { x: 620, y: 215, lat: 41.2871, lon: 36.3234 },
+        "Erzurum": { x: 760, y: 245, lat: 39.9051, lon: 41.2709 },
+        "Van": { x: 830, y: 325, lat: 38.5012, lon: 43.3730 },
+        "Malatya": { x: 630, y: 305, lat: 38.3552, lon: 38.3095 },
+        "Denizli": { x: 380, y: 345, lat: 37.7735, lon: 29.0865 },
+        "Şanlıurfa": { x: 650, y: 375, lat: 37.1591, lon: 38.7969 },
+        "Eskişehir": { x: 420, y: 235, lat: 39.7700, lon: 30.5025 },
+        "Edirne": { x: 230, y: 165, lat: 41.6771, lon: 26.5557 }
+    };
     
-    const DAILY_KEY = 'turkey_map_daily_v2';
+    const citiesList = Object.keys(cityPositions);
+    const cities = citiesList.map(name => ({
+        name: name,
+        x: cityPositions[name].x,
+        y: cityPositions[name].y,
+        lat: cityPositions[name].lat,
+        lon: cityPositions[name].lon
+    }));
     
-    // ============================================
-    // FIXED SEED FOR DAILY CHALLENGE
-    // All players get the same cities based on date
-    // ============================================
+    const DAILY_KEY = 'turkey_map_daily_fixed';
+    
     function getDailySeed() {
         const today = new Date();
-        // Use year, month, day to create same seed worldwide
         return today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
     }
     
-    // Seeded random number generator (deterministic)
     function seededRandom(seed) {
         let s = seed;
         return function() {
@@ -324,7 +371,6 @@
         };
     }
     
-    // Shuffle array using seed (deterministic)
     function seededShuffle(arr, seed) {
         const rng = seededRandom(seed);
         for (let i = arr.length - 1; i > 0; i--) {
@@ -334,19 +380,10 @@
         return arr;
     }
     
-    function latToY(lat) {
-        return ((NORTH - lat) / (NORTH - SOUTH)) * 500;
-    }
-    
-    function lonToX(lon) {
-        return ((lon - WEST) / (EAST - WEST)) * 1024;
-    }
-    
-    function pixelToLatLon(x, y) {
-        return {
-            lat: NORTH - (y / 500) * (NORTH - SOUTH),
-            lon: WEST + (x / 1024) * (EAST - WEST)
-        };
+    function getDailyCities() {
+        const seed = getDailySeed();
+        const shuffled = seededShuffle([...cities], seed);
+        return shuffled.slice(0, 5);
     }
     
     function haversineDistance(lat1, lon1, lat2, lon2) {
@@ -358,80 +395,6 @@
                   Math.sin(dLon/2) * Math.sin(dLon/2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         return R * c;
-    }
-    
-    const cities = [
-        { name: "Adana", lat: 36.9919, lon: 35.3308 }, { name: "Adıyaman", lat: 37.7636, lon: 38.2778 },
-        { name: "Afyonkarahisar", lat: 38.7584, lon: 30.5383 }, { name: "Ağrı", lat: 39.7195, lon: 43.0505 },
-        { name: "Aksaray", lat: 38.3747, lon: 34.0289 }, { name: "Amasya", lat: 40.6517, lon: 35.8336 },
-        { name: "Ankara", lat: 39.9208, lon: 32.8541 }, { name: "Antalya", lat: 36.8969, lon: 30.7133 },
-        { name: "Ardahan", lat: 41.1105, lon: 42.7022 }, { name: "Artvin", lat: 41.1825, lon: 41.8189 },
-        { name: "Aydın", lat: 37.8416, lon: 27.8456 }, { name: "Balıkesir", lat: 39.6484, lon: 27.8826 },
-        { name: "Bartın", lat: 41.6355, lon: 32.3362 }, { name: "Batman", lat: 37.8812, lon: 41.1351 },
-        { name: "Bayburt", lat: 40.2554, lon: 40.2231 }, { name: "Bilecik", lat: 40.1431, lon: 29.9794 },
-        { name: "Bingöl", lat: 38.8863, lon: 40.4987 }, { name: "Bitlis", lat: 38.4000, lon: 42.1083 },
-        { name: "Bolu", lat: 40.7356, lon: 31.6086 }, { name: "Burdur", lat: 37.7203, lon: 30.2908 },
-        { name: "Bursa", lat: 40.1826, lon: 29.0665 }, { name: "Çanakkale", lat: 40.1553, lon: 26.4142 },
-        { name: "Çankırı", lat: 40.6000, lon: 33.6167 }, { name: "Çorum", lat: 40.5455, lon: 34.9570 },
-        { name: "Denizli", lat: 37.7735, lon: 29.0865 }, { name: "Diyarbakır", lat: 37.9144, lon: 40.2306 },
-        { name: "Düzce", lat: 40.8389, lon: 31.1656 }, { name: "Edirne", lat: 41.6771, lon: 26.5557 },
-        { name: "Elazığ", lat: 38.6811, lon: 39.2256 }, { name: "Erzincan", lat: 39.7464, lon: 39.4925 },
-        { name: "Erzurum", lat: 39.9051, lon: 41.2709 }, { name: "Eskişehir", lat: 39.7700, lon: 30.5025 },
-        { name: "Gaziantep", lat: 37.0662, lon: 37.3833 }, { name: "Giresun", lat: 40.9128, lon: 38.3894 },
-        { name: "Gümüşhane", lat: 40.4603, lon: 39.4769 }, { name: "Hakkâri", lat: 37.5747, lon: 43.7408 },
-        { name: "Hatay", lat: 36.4018, lon: 36.3498 }, { name: "Iğdır", lat: 39.9200, lon: 44.0440 },
-        { name: "Isparta", lat: 37.7644, lon: 30.5564 }, { name: "İstanbul", lat: 41.0082, lon: 28.9784 },
-        { name: "İzmir", lat: 38.4189, lon: 27.1287 }, { name: "Kahramanmaraş", lat: 37.5875, lon: 36.9317 },
-        { name: "Karabük", lat: 41.2061, lon: 32.6194 }, { name: "Karaman", lat: 37.1811, lon: 33.2150 },
-        { name: "Kars", lat: 40.6017, lon: 43.0975 }, { name: "Kastamonu", lat: 41.3887, lon: 33.7825 },
-        { name: "Kayseri", lat: 38.7239, lon: 35.4801 }, { name: "Kırıkkale", lat: 39.8468, lon: 33.5153 },
-        { name: "Kırklareli", lat: 41.7358, lon: 27.2252 }, { name: "Kırşehir", lat: 39.1464, lon: 34.1597 },
-        { name: "Kilis", lat: 36.7167, lon: 37.1167 }, { name: "Kocaeli", lat: 40.7655, lon: 29.9408 },
-        { name: "Konya", lat: 37.8704, lon: 32.5110 }, { name: "Kütahya", lat: 39.4217, lon: 29.9879 },
-        { name: "Malatya", lat: 38.3552, lon: 38.3095 }, { name: "Manisa", lat: 38.6133, lon: 27.4250 },
-        { name: "Mardin", lat: 37.3132, lon: 40.7351 }, { name: "Mersin", lat: 36.8000, lon: 34.6333 },
-        { name: "Muğla", lat: 37.2153, lon: 28.3636 }, { name: "Muş", lat: 38.7347, lon: 41.4911 },
-        { name: "Nevşehir", lat: 38.6250, lon: 34.7167 }, { name: "Niğde", lat: 37.9667, lon: 34.6833 },
-        { name: "Ordu", lat: 40.9839, lon: 37.8764 }, { name: "Osmaniye", lat: 37.0750, lon: 36.2500 },
-        { name: "Rize", lat: 41.0208, lon: 40.5219 }, { name: "Sakarya", lat: 40.7732, lon: 30.3947 },
-        { name: "Samsun", lat: 41.2871, lon: 36.3234 }, { name: "Siirt", lat: 37.9311, lon: 41.9453 },
-        { name: "Sinop", lat: 42.0239, lon: 35.1531 }, { name: "Sivas", lat: 39.7515, lon: 37.0172 },
-        { name: "Şanlıurfa", lat: 37.1591, lon: 38.7969 }, { name: "Şırnak", lat: 37.5163, lon: 42.4610 },
-        { name: "Tekirdağ", lat: 40.9789, lon: 27.5106 }, { name: "Tokat", lat: 40.3139, lon: 36.5544 },
-        { name: "Trabzon", lat: 41.0061, lon: 39.7191 }, { name: "Tunceli", lat: 39.1075, lon: 39.5489 },
-        { name: "Uşak", lat: 38.6775, lon: 29.4058 }, { name: "Van", lat: 38.5012, lon: 43.3730 },
-        { name: "Yalova", lat: 40.6550, lon: 29.2775 }, { name: "Yozgat", lat: 39.8200, lon: 34.8094 },
-        { name: "Zonguldak", lat: 41.4564, lon: 31.7975 }
-    ];
-    
-    const citiesWithPos = cities.map(city => ({
-        name: city.name,
-        lat: city.lat,
-        lon: city.lon,
-        x: lonToX(city.lon),
-        y: latToY(city.lat)
-    }));
-    
-    let currentRound = [];
-    let currentIndex = 0;
-    let currentCity = null;
-    let totalScore = 0;
-    let canClick = true;
-    let mapLoaded = false;
-    let gameActive = true;
-    let answered = false;
-    let showMarkers = false;
-    let clickPos = null;
-    let correctPos = null;
-    
-    let questionPercentages = [];
-    let questionIcons = [];
-    
-    // DAILY CHALLENGE: Get same cities for everyone today
-    function getDailyCities() {
-        const seed = getDailySeed();
-        const shuffled = seededShuffle([...citiesWithPos], seed);
-        return shuffled.slice(0, 5);
     }
     
     function checkDailyLimit() {
@@ -448,10 +411,7 @@
     
     function saveDailyScore(score) {
         const today = new Date().toDateString();
-        localStorage.setItem(DAILY_KEY, JSON.stringify({
-            date: today,
-            score: score
-        }));
+        localStorage.setItem(DAILY_KEY, JSON.stringify({ date: today, score: score }));
     }
     
     function showDailyLimitOverlay(score) {
@@ -463,6 +423,19 @@
         document.getElementById('dailyLimitOverlay').classList.remove('show');
     }
     
+    let currentRound = [];
+    let currentIndex = 0;
+    let currentCity = null;
+    let totalScore = 0;
+    let canClick = true;
+    let gameActive = true;
+    let answered = false;
+    let showMarkers = false;
+    let clickPos = null;
+    let correctPos = null;
+    let questionPercentages = [];
+    let questionIcons = [];
+    
     let gameStarted = false;
     const dailyCheck = checkDailyLimit();
     
@@ -472,21 +445,17 @@
         document.getElementById('nextBtn').style.display = "none";
         document.getElementById('resetBtn').style.display = "none";
         document.getElementById('shareBtn').style.display = "none";
-        document.getElementById('message').innerHTML = `⏰ You've already played today! Come back tomorrow.`;
-        document.getElementById('message').className = "message miss";
+        document.getElementById('message').innerHTML = "⏰ You've already played today! Come back tomorrow.";
     } else {
         gameStarted = true;
         currentRound = getDailyCities();
-        
-        // Display today's challenge cities (optional)
         const cityNames = currentRound.map(c => c.name).join(', ');
         document.getElementById('dailyBadge').innerHTML = `📅 Daily Challenge: ${cityNames}`;
+        drawMapBase();
     }
     
-    function drawMap() {
-        if (!mapLoaded) return;
-        ctx.clearRect(0, 0, 1024, 500);
-        ctx.drawImage(mapImage, 0, 0, 1024, 500);
+    function drawMapWithMarkers() {
+        drawMapBase();
         
         if (showMarkers) {
             if (clickPos) {
@@ -524,9 +493,6 @@
         }
     }
     
-    mapImage.onload = () => { mapLoaded = true; drawMap(); };
-    mapImage.onerror = () => { document.getElementById('message').innerHTML = "⚠️ Upload turkey-map.png"; };
-    
     function calculatePoints(distanceKm) {
         if (distanceKm <= 60) return 200;
         if (distanceKm <= 80) return 160;
@@ -562,73 +528,50 @@
         const month = now.toLocaleString('default', { month: 'short' });
         const day = now.getDate();
         const dateString = `${month} ${day}`;
-        
         let scoreLine = "";
         for (let i = 0; i < questionPercentages.length; i++) {
             let icon = getIconForPoints(questionPercentages[i] * 2);
             scoreLine += `${questionPercentages[i]}${icon} `;
         }
         scoreLine = scoreLine.trim();
-        
         return `https://esa102.github.io/GameArcade/ ${dateString}\n${scoreLine}\nFinal score: ${totalScore}`;
     }
     
     function shareViaWhatsApp() {
-        const message = encodeURIComponent(getShareMessage());
-        window.open(`https://web.whatsapp.com/send?text=${message}`, '_blank');
+        window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(getShareMessage())}`, '_blank');
         closeShareModal();
     }
     
     function shareViaEmail() {
-        const subject = encodeURIComponent("My Turkey Map Challenge Score");
-        const body = encodeURIComponent(getShareMessage());
-        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        window.location.href = `mailto:?subject=${encodeURIComponent("My Turkey Map Challenge Score")}&body=${encodeURIComponent(getShareMessage())}`;
         closeShareModal();
     }
     
     function copyToClipboard() {
-        const message = getShareMessage();
-        navigator.clipboard.writeText(message).then(() => {
+        navigator.clipboard.writeText(getShareMessage()).then(() => {
             const msgDiv = document.getElementById('message');
-            const originalText = msgDiv.innerHTML;
-            msgDiv.innerHTML = "📋 Score copied to clipboard! Share it with friends!";
-            msgDiv.className = "message message-info";
-            setTimeout(() => {
-                if (gameActive) {
-                    msgDiv.innerHTML = originalText;
-                } else {
-                    msgDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
-                }
-            }, 2000);
-        }).catch(() => {
-            alert("Copy this: " + getShareMessage());
+            const original = msgDiv.innerHTML;
+            msgDiv.innerHTML = "📋 Score copied!";
+            setTimeout(() => { msgDiv.innerHTML = original; }, 2000);
         });
         closeShareModal();
     }
     
-    function showShareModal() {
-        document.getElementById('shareModal').classList.add('show');
-    }
-    
-    function closeShareModal() {
-        document.getElementById('shareModal').classList.remove('show');
-    }
+    function showShareModal() { document.getElementById('shareModal').classList.add('show'); }
+    function closeShareModal() { document.getElementById('shareModal').classList.remove('show'); }
     
     function endGame() {
         gameActive = false;
         saveDailyScore(totalScore);
         document.getElementById('message').className = "message game-complete";
         document.getElementById('message').innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
-        document.getElementById('progress').innerHTML = `🏁 Game finished! Come back tomorrow for a new challenge! 🏁`;
+        document.getElementById('progress').innerHTML = `🏁 Come back tomorrow for a new challenge! 🏁`;
         document.getElementById('nextBtn').style.display = "none";
         document.getElementById('shareBtn').style.display = "block";
     }
     
     function loadNext() {
-        if (currentIndex >= currentRound.length) { 
-            endGame(); 
-            return; 
-        }
+        if (currentIndex >= currentRound.length) { endGame(); return; }
         answered = false;
         showMarkers = false;
         clickPos = null;
@@ -637,15 +580,15 @@
         document.getElementById('targetCity').innerText = currentCity.name;
         document.getElementById('progress').innerHTML = `📍 Question ${currentIndex + 1} of ${currentRound.length}`;
         document.getElementById('message').className = "message message-info";
-        document.getElementById('message').innerHTML = "Ready! Click on the map to start";
-        drawMap();
+        document.getElementById('message').innerHTML = "Click on the map!";
+        drawMapWithMarkers();
         canClick = true;
         document.getElementById('nextBtn').style.display = "block";
         document.getElementById('shareBtn').style.display = "none";
     }
     
     function handleClick(e) {
-        if (!gameActive || !canClick || !currentCity || !mapLoaded || answered) return;
+        if (!gameActive || !canClick || !currentCity || answered) return;
         
         const rect = canvas.getBoundingClientRect();
         const scaleX = 1024 / rect.width;
@@ -653,11 +596,10 @@
         const userX = (e.clientX - rect.left) * scaleX;
         const userY = (e.clientY - rect.top) * scaleY;
         
-        const clickLatLon = pixelToLatLon(userX, userY);
-        const distanceKm = haversineDistance(
-            clickLatLon.lat, clickLatLon.lon,
-            currentCity.lat, currentCity.lon
-        );
+        const dx = userX - currentCity.x;
+        const dy = userY - currentCity.y;
+        const distancePixels = Math.sqrt(dx*dx + dy*dy);
+        const distanceKm = distancePixels * 4.5;
         
         const points = calculatePoints(distanceKm);
         totalScore += points;
@@ -672,18 +614,15 @@
         const msgDiv = document.getElementById('message');
         let gradeClass = "miss";
         if (distanceKm <= 60) gradeClass = "perfect";
-        else if (distanceKm <= 80) gradeClass = "perfect";
         else if (distanceKm <= 100) gradeClass = "good";
-        else if (distanceKm <= 150) gradeClass = "good";
         else if (distanceKm <= 300) gradeClass = "close";
-        
         msgDiv.className = `message ${gradeClass}`;
         msgDiv.innerHTML = `${getGradeText(distanceKm)}`;
         
         showMarkers = true;
         clickPos = { x: userX, y: userY };
         correctPos = { x: currentCity.x, y: currentCity.y };
-        drawMap();
+        drawMapWithMarkers();
         answered = true;
         canClick = false;
     }
@@ -701,13 +640,21 @@
     function resetGame() {
         if (!gameStarted || !gameActive) {
             document.getElementById('message').innerHTML = "⏰ You can only play once per day!";
-            return;
         }
     }
     
-    if (gameStarted) {
-        loadNext();
-    }
+    if (gameStarted) { loadNext(); }
     
     canvas.addEventListener('click', handleClick);
-    document.getElementById('resetBtn').addEventListener('click
+    document.getElementById('resetBtn').addEventListener('click', resetGame);
+    document.getElementById('nextBtn').addEventListener('click', nextCity);
+    document.getElementById('shareBtn').addEventListener('click', showShareModal);
+    document.getElementById('shareWhatsApp').addEventListener('click', shareViaWhatsApp);
+    document.getElementById('shareEmail').addEventListener('click', shareViaEmail);
+    document.getElementById('shareCopy').addEventListener('click', copyToClipboard);
+    document.getElementById('closeModal').addEventListener('click', closeShareModal);
+    document.getElementById('closeDailyLimitBtn').addEventListener('click', closeDailyLimitOverlay);
+    document.getElementById('shareModal').addEventListener('click', function(e) { if (e.target === this) closeShareModal(); });
+</script>
+</body>
+</html>
