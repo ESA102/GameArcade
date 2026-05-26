@@ -122,7 +122,6 @@
         .points-breakdown span { color: white; }
         .instruction { text-align: center; font-size: 0.9rem; color: #6b4c2c; margin-top: 5px; margin-bottom: 10px; }
         
-        /* Share Modal */
         .share-modal {
             position: fixed;
             top: 0;
@@ -220,7 +219,6 @@
     </div>
 </div>
 
-<!-- Share Modal -->
 <div class="share-modal" id="shareModal">
     <div class="share-modal-content">
         <h3>📤 Share Your Score</h3>
@@ -414,6 +412,15 @@
         return "💪";
     }
     
+    // WhatsApp-compatible icon converter (replaces emojis with text for reliable display)
+    function getWhatsAppIcon(emoji) {
+        if (emoji === "🏅") return "[GOLD]";
+        if (emoji === "🏆") return "[CUP]";
+        if (emoji === "😁") return "[SMILE]";
+        if (emoji === "💪") return "[ARM]";
+        return emoji;
+    }
+    
     function getPercentageForPoints(points) {
         return Math.round((points / 200) * 100);
     }
@@ -435,7 +442,10 @@
         
         let scoreLine = "";
         for (let i = 0; i < questionPercentages.length; i++) {
-            scoreLine += `${questionPercentages[i]}${questionIcons[i]} `;
+            let icon = questionIcons[i];
+            // Convert emoji to text for WhatsApp compatibility
+            icon = getWhatsAppIcon(icon);
+            scoreLine += `${questionPercentages[i]}${icon} `;
         }
         scoreLine = scoreLine.trim();
         
