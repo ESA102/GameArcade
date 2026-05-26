@@ -81,7 +81,7 @@
         button:active { transform: scale(0.97); }
         #nextBtn { background: #2f6b3c; color: white; }
         #resetBtn { background: #8b6c3c; color: white; }
-        #shareBtn { background: #25D366; color: white; min-width: 160px; }
+        #shareBtn { background: #25D366; color: white; min-width: 160px; display: none; }
         .message {
             padding: 12px;
             border-radius: 50px;
@@ -120,7 +120,7 @@
             gap: 12px;
         }
         .points-breakdown span { color: white; }
-        .instruction { text-align: center; font-size: 0.9rem; color: #6b4c2c; margin-top: 5px; }
+        .instruction { text-align: center; font-size: 0.9rem; color: #6b4c2c; margin-top: 5px; margin-bottom: 10px; }
         
         /* Share Modal */
         .share-modal {
@@ -337,7 +337,6 @@
     let clickPos = null;
     let correctPos = null;
     
-    // Store individual question scores
     let questionPercentages = [];
     let questionIcons = [];
     
@@ -490,6 +489,7 @@
         document.getElementById('message').innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
         document.getElementById('progress').innerHTML = `🏁 Game finished! Click "PLAY AGAIN" for a new round 🏁`;
         document.getElementById('nextBtn').style.display = "none";
+        document.getElementById('shareBtn').style.display = "block";
     }
     
     function loadNext() {
@@ -505,10 +505,11 @@
         document.getElementById('targetCity').innerText = currentCity.name;
         document.getElementById('progress').innerHTML = `📍 Question ${currentIndex + 1} of ${currentRound.length}`;
         document.getElementById('message').className = "message message-info";
-        document.getElementById('message').innerHTML = "📍 CLICK ON THE MAP";
+        document.getElementById('message').innerHTML = "Ready! Click on the map to start";
         drawMap();
         canClick = true;
         document.getElementById('nextBtn').style.display = "block";
+        document.getElementById('shareBtn').style.display = "none";
     }
     
     function handleClick(e) {
@@ -575,6 +576,7 @@
         questionIcons = [];
         document.getElementById('score').innerText = "0";
         document.getElementById('nextBtn').style.display = "block";
+        document.getElementById('shareBtn').style.display = "none";
         
         currentRound = selectRandomCities();
         loadNext();
