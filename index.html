@@ -296,7 +296,7 @@
     canvas.height = 500;
     
     const mapImage = new Image();
-    mapImage.src = 'turkey-map.png?' + Date.now();
+    mapImage.src = 'turkey-map.png';
     
     const NORTH = 42.5;
     const SOUTH = 35.5;
@@ -305,17 +305,11 @@
     
     const DAILY_KEY = 'turkey_map_daily_v2';
     
-    // ============================================
-    // FIXED SEED FOR DAILY CHALLENGE
-    // All players get the same cities based on date
-    // ============================================
     function getDailySeed() {
         const today = new Date();
-        // Use year, month, day to create same seed worldwide
         return today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
     }
     
-    // Seeded random number generator (deterministic)
     function seededRandom(seed) {
         let s = seed;
         return function() {
@@ -324,7 +318,6 @@
         };
     }
     
-    // Shuffle array using seed (deterministic)
     function seededShuffle(arr, seed) {
         const rng = seededRandom(seed);
         for (let i = arr.length - 1; i > 0; i--) {
@@ -427,7 +420,6 @@
     let questionPercentages = [];
     let questionIcons = [];
     
-    // DAILY CHALLENGE: Get same cities for everyone today
     function getDailyCities() {
         const seed = getDailySeed();
         const shuffled = seededShuffle([...citiesWithPos], seed);
@@ -448,10 +440,7 @@
     
     function saveDailyScore(score) {
         const today = new Date().toDateString();
-        localStorage.setItem(DAILY_KEY, JSON.stringify({
-            date: today,
-            score: score
-        }));
+        localStorage.setItem(DAILY_KEY, JSON.stringify({ date: today, score: score }));
     }
     
     function showDailyLimitOverlay(score) {
@@ -472,13 +461,11 @@
         document.getElementById('nextBtn').style.display = "none";
         document.getElementById('resetBtn').style.display = "none";
         document.getElementById('shareBtn').style.display = "none";
-        document.getElementById('message').innerHTML = `⏰ You've already played today! Come back tomorrow.`;
+        document.getElementById('message').innerHTML = "⏰ You've already played today! Come back tomorrow.";
         document.getElementById('message').className = "message miss";
     } else {
         gameStarted = true;
         currentRound = getDailyCities();
-        
-        // Display today's challenge cities (optional)
         const cityNames = currentRound.map(c => c.name).join(', ');
         document.getElementById('dailyBadge').innerHTML = `📅 Daily Challenge: ${cityNames}`;
     }
@@ -562,73 +549,50 @@
         const month = now.toLocaleString('default', { month: 'short' });
         const day = now.getDate();
         const dateString = `${month} ${day}`;
-        
         let scoreLine = "";
         for (let i = 0; i < questionPercentages.length; i++) {
             let icon = getIconForPoints(questionPercentages[i] * 2);
             scoreLine += `${questionPercentages[i]}${icon} `;
         }
         scoreLine = scoreLine.trim();
-        
         return `https://esa102.github.io/GameArcade/ ${dateString}\n${scoreLine}\nFinal score: ${totalScore}`;
     }
     
     function shareViaWhatsApp() {
-        const message = encodeURIComponent(getShareMessage());
-        window.open(`https://web.whatsapp.com/send?text=${message}`, '_blank');
+        window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(getShareMessage())}`, '_blank');
         closeShareModal();
     }
     
     function shareViaEmail() {
-        const subject = encodeURIComponent("My Turkey Map Challenge Score");
-        const body = encodeURIComponent(getShareMessage());
-        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        window.location.href = `mailto:?subject=${encodeURIComponent("My Turkey Map Challenge Score")}&body=${encodeURIComponent(getShareMessage())}`;
         closeShareModal();
     }
     
     function copyToClipboard() {
-        const message = getShareMessage();
-        navigator.clipboard.writeText(message).then(() => {
+        navigator.clipboard.writeText(getShareMessage()).then(() => {
             const msgDiv = document.getElementById('message');
-            const originalText = msgDiv.innerHTML;
-            msgDiv.innerHTML = "📋 Score copied to clipboard! Share it with friends!";
-            msgDiv.className = "message message-info";
-            setTimeout(() => {
-                if (gameActive) {
-                    msgDiv.innerHTML = originalText;
-                } else {
-                    msgDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
-                }
-            }, 2000);
-        }).catch(() => {
-            alert("Copy this: " + getShareMessage());
+            const original = msgDiv.innerHTML;
+            msgDiv.innerHTML = "📋 Score copied!";
+            setTimeout(() => { msgDiv.innerHTML = original; }, 2000);
         });
         closeShareModal();
     }
     
-    function showShareModal() {
-        document.getElementById('shareModal').classList.add('show');
-    }
-    
-    function closeShareModal() {
-        document.getElementById('shareModal').classList.remove('show');
-    }
+    function showShareModal() { document.getElementById('shareModal').classList.add('show'); }
+    function closeShareModal() { document.getElementById('shareModal').classList.remove('show'); }
     
     function endGame() {
         gameActive = false;
         saveDailyScore(totalScore);
         document.getElementById('message').className = "message game-complete";
         document.getElementById('message').innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
-        document.getElementById('progress').innerHTML = `🏁 Game finished! Come back tomorrow for a new challenge! 🏁`;
+        document.getElementById('progress').innerHTML = "🏁 Come back tomorrow for a new challenge! 🏁";
         document.getElementById('nextBtn').style.display = "none";
         document.getElementById('shareBtn').style.display = "block";
     }
     
     function loadNext() {
-        if (currentIndex >= currentRound.length) { 
-            endGame(); 
-            return; 
-        }
+        if (currentIndex >= currentRound.length) { endGame(); return; }
         answered = false;
         showMarkers = false;
         clickPos = null;
@@ -637,7 +601,7 @@
         document.getElementById('targetCity').innerText = currentCity.name;
         document.getElementById('progress').innerHTML = `📍 Question ${currentIndex + 1} of ${currentRound.length}`;
         document.getElementById('message').className = "message message-info";
-        document.getElementById('message').innerHTML = "Ready! Click on the map to start";
+        document.getElementById('message').innerHTML = "Click on the map!";
         drawMap();
         canClick = true;
         document.getElementById('nextBtn').style.display = "block";
@@ -654,11 +618,7 @@
         const userY = (e.clientY - rect.top) * scaleY;
         
         const clickLatLon = pixelToLatLon(userX, userY);
-        const distanceKm = haversineDistance(
-            clickLatLon.lat, clickLatLon.lon,
-            currentCity.lat, currentCity.lon
-        );
-        
+        const distanceKm = haversineDistance(clickLatLon.lat, clickLatLon.lon, currentCity.lat, currentCity.lon);
         const points = calculatePoints(distanceKm);
         totalScore += points;
         
@@ -672,11 +632,8 @@
         const msgDiv = document.getElementById('message');
         let gradeClass = "miss";
         if (distanceKm <= 60) gradeClass = "perfect";
-        else if (distanceKm <= 80) gradeClass = "perfect";
         else if (distanceKm <= 100) gradeClass = "good";
-        else if (distanceKm <= 150) gradeClass = "good";
         else if (distanceKm <= 300) gradeClass = "close";
-        
         msgDiv.className = `message ${gradeClass}`;
         msgDiv.innerHTML = `${getGradeText(distanceKm)}`;
         
@@ -701,13 +658,21 @@
     function resetGame() {
         if (!gameStarted || !gameActive) {
             document.getElementById('message').innerHTML = "⏰ You can only play once per day!";
-            return;
         }
     }
     
-    if (gameStarted) {
-        loadNext();
-    }
+    if (gameStarted) { loadNext(); }
     
     canvas.addEventListener('click', handleClick);
-    document.getElementById('resetBtn').addEventListener('click
+    document.getElementById('resetBtn').addEventListener('click', resetGame);
+    document.getElementById('nextBtn').addEventListener('click', nextCity);
+    document.getElementById('shareBtn').addEventListener('click', showShareModal);
+    document.getElementById('shareWhatsApp').addEventListener('click', shareViaWhatsApp);
+    document.getElementById('shareEmail').addEventListener('click', shareViaEmail);
+    document.getElementById('shareCopy').addEventListener('click', copyToClipboard);
+    document.getElementById('closeModal').addEventListener('click', closeShareModal);
+    document.getElementById('closeDailyLimitBtn').addEventListener('click', closeDailyLimitOverlay);
+    document.getElementById('shareModal').addEventListener('click', function(e) { if (e.target === this) closeShareModal(); });
+</script>
+</body>
+</html>
