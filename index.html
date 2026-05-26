@@ -252,7 +252,7 @@
     </div>
     
     <div class="instruction">📍 Click on the map where you think the city is located</div>
-    <div class="daily-badge" id="dailyBadge">🗓️ Daily Challenge: Same cities for everyone today!</div>
+    <div class="daily-badge" id="dailyBadge">🎯 Daily Challenge: Same cities for everyone today!</div>
     
     <div class="message message-info" id="message">Ready! Click on the map to start</div>
     <div class="progress" id="progress">Question 1 of 5</div>
@@ -417,7 +417,7 @@
     let clickPos = null;
     let correctPos = null;
     
-    let questionPercentages = [];
+    let questionPoints = [];
     let questionIcons = [];
     
     function getDailyCities() {
@@ -467,7 +467,7 @@
         gameStarted = true;
         currentRound = getDailyCities();
         const cityNames = currentRound.map(c => c.name).join(', ');
-        document.getElementById('dailyBadge').innerHTML = `📅 Daily Challenge: ${cityNames}`;
+        document.getElementById('dailyBadge').innerHTML = `🎯 Daily Challenge: ${cityNames}`;
     }
     
     function drawMap() {
@@ -531,10 +531,6 @@
         return "💪";
     }
     
-    function getPercentageForPoints(points) {
-        return Math.round((points / 200) * 100);
-    }
-    
     function getGradeText(distanceKm) {
         if (distanceKm <= 60) return "🎯 PERFECT! +200";
         if (distanceKm <= 80) return "👍 EXCELLENT! +160";
@@ -550,9 +546,9 @@
         const day = now.getDate();
         const dateString = `${month} ${day}`;
         let scoreLine = "";
-        for (let i = 0; i < questionPercentages.length; i++) {
-            let icon = getIconForPoints(questionPercentages[i] * 2);
-            scoreLine += `${questionPercentages[i]}${icon} `;
+        for (let i = 0; i < questionPoints.length; i++) {
+            let icon = getIconForPoints(questionPoints[i]);
+            scoreLine += `${questionPoints[i]}${icon} `;
         }
         scoreLine = scoreLine.trim();
         return `https://esa102.github.io/GameArcade/ ${dateString}\n${scoreLine}\nFinal score: ${totalScore}`;
@@ -640,10 +636,8 @@
         const points = calculatePoints(distanceKm);
         totalScore += points;
         
-        const percentage = getPercentageForPoints(points);
-        const icon = getIconForPoints(points);
-        questionPercentages[currentIndex] = percentage;
-        questionIcons[currentIndex] = icon;
+        questionPoints[currentIndex] = points;
+        questionIcons[currentIndex] = getIconForPoints(points);
         
         document.getElementById('score').innerText = totalScore;
         
