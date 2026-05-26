@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Turkey Map Challenge - Find the City</title>
+    <title>Turkey Map Challenge - Daily Challenge</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -121,6 +121,12 @@
         }
         .points-breakdown span { color: white; }
         .instruction { text-align: center; font-size: 0.9rem; color: #6b4c2c; margin-top: 5px; margin-bottom: 10px; }
+        .daily-badge {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #d9a13b;
+            margin-top: 5px;
+        }
         
         .share-modal {
             position: fixed;
@@ -180,7 +186,6 @@
             cursor: pointer;
         }
         
-        /* Daily limit overlay */
         .daily-limit-overlay {
             position: fixed;
             top: 0;
@@ -247,6 +252,7 @@
     </div>
     
     <div class="instruction">📍 Click on the map where you think the city is located</div>
+    <div class="daily-badge" id="dailyBadge">📅 Daily Challenge: Same cities for everyone today!</div>
     
     <div class="message message-info" id="message">Ready! Click on the map to start</div>
     <div class="progress" id="progress">Question 1 of 5</div>
@@ -273,12 +279,11 @@
     </div>
 </div>
 
-<!-- Daily Limit Overlay -->
 <div class="daily-limit-overlay" id="dailyLimitOverlay">
     <div class="daily-limit-content">
         <h2>⏰ Daily Challenge Complete!</h2>
         <p>You've already played today's challenge.</p>
-        <p>Come back tomorrow for a new map challenge!</p>
+        <p>Come back tomorrow for a new challenge!</p>
         <p>⭐ Your score today: <span id="todaysScore">0</span> / 1000 ⭐</p>
         <button id="closeDailyLimitBtn">OK</button>
     </div>
@@ -298,36 +303,35 @@
     const WEST = 25.4;
     const EAST = 45.0;
     
-    // Daily limit key
-    const DAILY_KEY = 'turkey_map_daily';
+    const DAILY_KEY = 'turkey_map_daily_v2';
     
-    function checkDailyLimit() {
-        const today = new Date().toDateString();
-        const saved = localStorage.getItem(DAILY_KEY);
-        if (saved) {
-            const data = JSON.parse(saved);
-            if (data.date === today) {
-                return { allowed: false, score: data.score };
-            }
+    // ============================================
+    // FIXED SEED FOR DAILY CHALLENGE
+    // All players get the same cities based on date
+    // ============================================
+    function getDailySeed() {
+        const today = new Date();
+        // Use year, month, day to create same seed worldwide
+        return today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    }
+    
+    // Seeded random number generator (deterministic)
+    function seededRandom(seed) {
+        let s = seed;
+        return function() {
+            s = (s * 1103515245 + 12345) & 0x7fffffff;
+            return s / 0x7fffffff;
+        };
+    }
+    
+    // Shuffle array using seed (deterministic)
+    function seededShuffle(arr, seed) {
+        const rng = seededRandom(seed);
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(rng() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
         }
-        return { allowed: true, score: null };
-    }
-    
-    function saveDailyScore(score) {
-        const today = new Date().toDateString();
-        localStorage.setItem(DAILY_KEY, JSON.stringify({
-            date: today,
-            score: score
-        }));
-    }
-    
-    function showDailyLimitOverlay(score) {
-        document.getElementById('todaysScore').innerText = score;
-        document.getElementById('dailyLimitOverlay').classList.add('show');
-    }
-    
-    function closeDailyLimitOverlay() {
-        document.getElementById('dailyLimitOverlay').classList.remove('show');
+        return arr;
     }
     
     function latToY(lat) {
@@ -423,12 +427,46 @@
     let questionPercentages = [];
     let questionIcons = [];
     
-    // Check daily limit before starting
-    const dailyCheck = checkDailyLimit();
+    // DAILY CHALLENGE: Get same cities for everyone today
+    function getDailyCities() {
+        const seed = getDailySeed();
+        const shuffled = seededShuffle([...citiesWithPos], seed);
+        return shuffled.slice(0, 5);
+    }
+    
+    function checkDailyLimit() {
+        const today = new Date().toDateString();
+        const saved = localStorage.getItem(DAILY_KEY);
+        if (saved) {
+            const data = JSON.parse(saved);
+            if (data.date === today) {
+                return { allowed: false, score: data.score };
+            }
+        }
+        return { allowed: true, score: null };
+    }
+    
+    function saveDailyScore(score) {
+        const today = new Date().toDateString();
+        localStorage.setItem(DAILY_KEY, JSON.stringify({
+            date: today,
+            score: score
+        }));
+    }
+    
+    function showDailyLimitOverlay(score) {
+        document.getElementById('todaysScore').innerText = score;
+        document.getElementById('dailyLimitOverlay').classList.add('show');
+    }
+    
+    function closeDailyLimitOverlay() {
+        document.getElementById('dailyLimitOverlay').classList.remove('show');
+    }
+    
     let gameStarted = false;
+    const dailyCheck = checkDailyLimit();
     
     if (!dailyCheck.allowed) {
-        // Show overlay and disable game
         showDailyLimitOverlay(dailyCheck.score);
         gameActive = false;
         document.getElementById('nextBtn').style.display = "none";
@@ -438,18 +476,11 @@
         document.getElementById('message').className = "message miss";
     } else {
         gameStarted = true;
-    }
-    
-    function shuffleArray(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
-    }
-    
-    function selectRandomCities() {
-        return shuffleArray([...citiesWithPos]).slice(0, 5);
+        currentRound = getDailyCities();
+        
+        // Display today's challenge cities (optional)
+        const cityNames = currentRound.map(c => c.name).join(', ');
+        document.getElementById('dailyBadge').innerHTML = `📅 Daily Challenge: ${cityNames}`;
     }
     
     function drawMap() {
@@ -585,7 +616,6 @@
     
     function endGame() {
         gameActive = false;
-        // Save today's score
         saveDailyScore(totalScore);
         document.getElementById('message').className = "message game-complete";
         document.getElementById('message').innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
@@ -669,34 +699,15 @@
     }
     
     function resetGame() {
-        // Reset not allowed due to daily limit
         if (!gameStarted || !gameActive) {
             document.getElementById('message').innerHTML = "⏰ You can only play once per day!";
             return;
         }
-        // This function is kept but not really used since daily limit prevents replay
     }
     
     if (gameStarted) {
-        currentRound = selectRandomCities();
         loadNext();
     }
     
     canvas.addEventListener('click', handleClick);
-    document.getElementById('resetBtn').addEventListener('click', resetGame);
-    document.getElementById('nextBtn').addEventListener('click', nextCity);
-    document.getElementById('shareBtn').addEventListener('click', showShareModal);
-    document.getElementById('shareWhatsApp').addEventListener('click', shareViaWhatsApp);
-    document.getElementById('shareEmail').addEventListener('click', shareViaEmail);
-    document.getElementById('shareCopy').addEventListener('click', copyToClipboard);
-    document.getElementById('closeModal').addEventListener('click', closeShareModal);
-    document.getElementById('closeDailyLimitBtn').addEventListener('click', closeDailyLimitOverlay);
-    
-    document.getElementById('shareModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeShareModal();
-        }
-    });
-</script>
-</body>
-</html>
+    document.getElementById('resetBtn').addEventListener('click
