@@ -191,7 +191,7 @@
 <body>
 <div class="game">
     <div class="header">
-        <div class="score-box" id="scoreBox">🏆 SCORE: <span id="score">0</span> / 1000</div>
+        <div class="score-box">🏆 SCORE: <span id="score">0</span> / 1000</div>
         <div class="target">🎯 FIND: <span class="city-name" id="targetCity">Loading...</span></div>
     </div>
     
@@ -337,7 +337,7 @@
     let clickPos = null;
     let correctPos = null;
     
-    // Store individual question scores (as percentages for MapTap style)
+    // Store individual question scores
     let questionPercentages = [];
     let questionIcons = [];
     
@@ -428,15 +428,6 @@
         return "❌ MISS +0";
     }
     
-    function updateScoreBox(isGameComplete) {
-        const scoreBox = document.getElementById('scoreBox');
-        if (isGameComplete) {
-            scoreBox.innerHTML = `🏆 FINAL SCORE: <span id="score">${totalScore}</span> / 1000`;
-        } else {
-            scoreBox.innerHTML = `🏆 SCORE: <span id="score">${totalScore}</span> / 1000`;
-        }
-    }
-    
     function getShareMessage() {
         const now = new Date();
         const month = now.toLocaleString('default', { month: 'short' });
@@ -449,7 +440,7 @@
         }
         scoreLine = scoreLine.trim();
         
-        return `www.turkeymapchallenge.com ${dateString}\n${scoreLine}\nFinal score: ${totalScore}`;
+        return `https://esa102.github.io/GameArcade/ ${dateString}\n${scoreLine}\nFinal score: ${totalScore}`;
     }
     
     function shareViaWhatsApp() {
@@ -499,7 +490,6 @@
         document.getElementById('message').innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
         document.getElementById('progress').innerHTML = `🏁 Game finished! Click "PLAY AGAIN" for a new round 🏁`;
         document.getElementById('nextBtn').style.display = "none";
-        updateScoreBox(true);
     }
     
     function loadNext() {
@@ -545,7 +535,6 @@
         questionIcons[currentIndex] = icon;
         
         document.getElementById('score').innerText = totalScore;
-        updateScoreBox(false);
         
         const msgDiv = document.getElementById('message');
         let gradeClass = "miss";
@@ -585,7 +574,6 @@
         questionPercentages = [];
         questionIcons = [];
         document.getElementById('score').innerText = "0";
-        updateScoreBox(false);
         document.getElementById('nextBtn').style.display = "block";
         
         currentRound = selectRandomCities();
@@ -602,7 +590,6 @@
     document.getElementById('shareCopy').addEventListener('click', copyToClipboard);
     document.getElementById('closeModal').addEventListener('click', closeShareModal);
     
-    // Close modal when clicking outside
     document.getElementById('shareModal').addEventListener('click', function(e) {
         if (e.target === this) {
             closeShareModal();
