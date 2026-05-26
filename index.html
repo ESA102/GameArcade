@@ -559,7 +559,7 @@
     }
     
     function shareViaWhatsApp() {
-        window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(getShareMessage())}`, '_blank');
+        window.location.href = `whatsapp://send?text=${message}`;
         closeShareModal();
     }
     
