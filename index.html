@@ -487,7 +487,6 @@
     function shareScore() {
         const message = getShareMessage();
         
-        // Strict check for mobile devices
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
                          || (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent)); // Catches iPads pretending to be Macs
     
@@ -496,7 +495,6 @@
             navigator.share({
                 title: 'My Turkey Map Challenge Score',
                 text: message,
-                url: 'https://esa102.github.io/GameArcade/'
             }).catch(() => {
                 // Fallback to clipboard if native share fails or is cancelled
                 copyToClipboardFallback(message);
