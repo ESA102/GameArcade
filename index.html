@@ -174,9 +174,7 @@
             transition: transform 0.1s;
         }
         .share-option:active { transform: scale(0.98); }
-        .share-option.whatsapp { background: #25D366; }
-        .share-option.email { background: #3b2a1f; }
-        .share-option.copy { background: #d9a13b; color: #2c2b28; }
+        .share-option.share-native { background: #25D366; }
         .close-modal {
             margin-top: 15px;
             background: #8b3c2c;
@@ -271,9 +269,7 @@
     <div class="share-modal-content">
         <h3>📤 Share Your Score</h3>
         <div class="share-options">
-            <div class="share-option whatsapp" id="shareWhatsApp">💬 WhatsApp</div>
-            <div class="share-option email" id="shareEmail">✉️ Email</div>
-            <div class="share-option copy" id="shareCopy">📋 Copy to Clipboard</div>
+            <div class="share-option share-native" id="nativeShareBtn">📱 Share</div>
         </div>
         <div class="close-modal" id="closeModal">Close</div>
     </div>
@@ -554,36 +550,36 @@
         return `https://esa102.github.io/GameArcade/ ${dateString}\n${scoreLine}\nFinal score: ${totalScore}`;
     }
     
-    function shareViaWhatsApp() {
-        const message = encodeURIComponent(getShareMessage());
-        window.open(`whatsapp://send?text=${message}`, '_self');
-        closeShareModal();
-    }
-    
-    function shareViaEmail() {
-        const subject = encodeURIComponent("My Turkey Map Challenge Score");
-        const body = encodeURIComponent(getShareMessage());
-        window.location.href = `mailto:?subject=${subject}&body=${body}`;
-        closeShareModal();
-    }
-    
-    function copyToClipboard() {
+    // NATIVE SHARE SHEET - Works like MapTap (iOS share sheet, Android share sheet)
+    function nativeShare() {
         const message = getShareMessage();
-        navigator.clipboard.writeText(message).then(() => {
-            const msgDiv = document.getElementById('message');
-            const originalText = msgDiv.innerHTML;
-            msgDiv.innerHTML = "📋 Score copied to clipboard!";
-            msgDiv.className = "message message-info";
-            setTimeout(() => {
-                if (gameActive) {
-                    msgDiv.innerHTML = originalText;
-                } else {
-                    msgDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
-                }
-            }, 2000);
-        }).catch(() => {
-            alert("Copy this: " + message);
-        });
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'My Turkey Map Challenge Score',
+                text: message,
+                url: 'https://esa102.github.io/GameArcade/'
+            }).catch((error) => {
+                console.log('Error sharing:', error);
+            });
+        } else {
+            // Fallback for desktop browsers
+            navigator.clipboard.writeText(message).then(() => {
+                const msgDiv = document.getElementById('message');
+                const originalText = msgDiv.innerHTML;
+                msgDiv.innerHTML = "📋 Score copied to clipboard!";
+                msgDiv.className = "message message-info";
+                setTimeout(() => {
+                    if (gameActive) {
+                        msgDiv.innerHTML = originalText;
+                    } else {
+                        msgDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
+                    }
+                }, 2000);
+            }).catch(() => {
+                alert("Copy this: " + message);
+            });
+        }
         closeShareModal();
     }
     
@@ -679,9 +675,7 @@
     document.getElementById('resetBtn').addEventListener('click', resetGame);
     document.getElementById('nextBtn').addEventListener('click', nextCity);
     document.getElementById('shareBtn').addEventListener('click', showShareModal);
-    document.getElementById('shareWhatsApp').addEventListener('click', shareViaWhatsApp);
-    document.getElementById('shareEmail').addEventListener('click', shareViaEmail);
-    document.getElementById('shareCopy').addEventListener('click', copyToClipboard);
+    document.getElementById('nativeShareBtn').addEventListener('click', nativeShare);
     document.getElementById('closeModal').addEventListener('click', closeShareModal);
     document.getElementById('closeDailyLimitBtn').addEventListener('click', closeDailyLimitOverlay);
     document.getElementById('shareModal').addEventListener('click', function(e) { if (e.target === this) closeShareModal(); });
