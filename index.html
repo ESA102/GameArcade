@@ -486,8 +486,9 @@
     
     function shareScore() {
         const message = getShareMessage();
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         
-        if (navigator.share) {
+        if (isMobile && navigator.share) {
             navigator.share({
                 title: 'My Turkey Map Challenge Score',
                 text: message,
