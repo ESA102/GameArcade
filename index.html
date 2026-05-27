@@ -128,62 +128,6 @@
             margin-top: 5px;
         }
         
-        .share-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            visibility: hidden;
-            opacity: 0;
-            transition: all 0.3s ease;
-        }
-        .share-modal.show {
-            visibility: visible;
-            opacity: 1;
-        }
-        .share-modal-content {
-            background: #f5f2e8;
-            border-radius: 30px;
-            padding: 25px;
-            max-width: 350px;
-            width: 90%;
-            text-align: center;
-        }
-        .share-modal-content h3 {
-            margin: 0 0 15px 0;
-            color: #2c2b28;
-        }
-        .share-options {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .share-option {
-            background: #2c2b28;
-            color: white;
-            padding: 12px;
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: transform 0.1s;
-        }
-        .share-option:active { transform: scale(0.98); }
-        .share-option.share-native { background: #25D366; }
-        .close-modal {
-            margin-top: 15px;
-            background: #8b3c2c;
-            color: white;
-            padding: 10px;
-            border-radius: 50px;
-            cursor: pointer;
-        }
-        
         .daily-limit-overlay {
             position: fixed;
             top: 0;
@@ -262,16 +206,6 @@
         <div>📌 101-150km: <span>80 pts</span></div>
         <div>🔍 151-300km: <span>40 pts</span></div>
         <div>❌ 300km+: <span>0 pts</span></div>
-    </div>
-</div>
-
-<div class="share-modal" id="shareModal">
-    <div class="share-modal-content">
-        <h3>📤 Share Your Score</h3>
-        <div class="share-options">
-            <div class="share-option share-native" id="nativeShareBtn">📱 Share</div>
-        </div>
-        <div class="close-modal" id="closeModal">Close</div>
     </div>
 </div>
 
@@ -550,8 +484,8 @@
         return `https://esa102.github.io/GameArcade/ ${dateString}\n${scoreLine}\nFinal score: ${totalScore}`;
     }
     
-    // NATIVE SHARE SHEET - Works like MapTap (iOS share sheet, Android share sheet)
-    function nativeShare() {
+    // DIRECT SHARE - NO EXTRA MODAL, EXACTLY LIKE MAPTAP
+    function shareScore() {
         const message = getShareMessage();
         
         if (navigator.share) {
@@ -563,7 +497,6 @@
                 console.log('Error sharing:', error);
             });
         } else {
-            // Fallback for desktop browsers
             navigator.clipboard.writeText(message).then(() => {
                 const msgDiv = document.getElementById('message');
                 const originalText = msgDiv.innerHTML;
@@ -580,15 +513,6 @@
                 alert("Copy this: " + message);
             });
         }
-        closeShareModal();
-    }
-    
-    function showShareModal() {
-        document.getElementById('shareModal').classList.add('show');
-    }
-    
-    function closeShareModal() {
-        document.getElementById('shareModal').classList.remove('show');
     }
     
     function endGame() {
@@ -674,11 +598,8 @@
     canvas.addEventListener('click', handleClick);
     document.getElementById('resetBtn').addEventListener('click', resetGame);
     document.getElementById('nextBtn').addEventListener('click', nextCity);
-    document.getElementById('shareBtn').addEventListener('click', showShareModal);
-    document.getElementById('nativeShareBtn').addEventListener('click', nativeShare);
-    document.getElementById('closeModal').addEventListener('click', closeShareModal);
+    document.getElementById('shareBtn').addEventListener('click', shareScore);
     document.getElementById('closeDailyLimitBtn').addEventListener('click', closeDailyLimitOverlay);
-    document.getElementById('shareModal').addEventListener('click', function(e) { if (e.target === this) closeShareModal(); });
 </script>
 </body>
 </html>
