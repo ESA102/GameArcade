@@ -486,11 +486,11 @@
     
     function shareScore() {
         const message = getShareMessage();
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         
-        if (isMobile && navigator.share) {
+        // This is what MapTap uses
+        if (navigator.share) {
             navigator.share({
-                title: 'My Turkey Map Challenge Score',
+                title: 'Turkey Map Challenge',
                 text: message,
                 url: 'https://esa102.github.io/GameArcade/'
             }).catch(() => {});
@@ -501,11 +501,7 @@
                 msgDiv.innerHTML = "📋 Score copied to clipboard!";
                 msgDiv.className = "message message-info";
                 setTimeout(() => {
-                    if (gameActive) {
-                        msgDiv.innerHTML = originalText;
-                    } else {
-                        msgDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
-                    }
+                    msgDiv.innerHTML = originalText;
                 }, 2000);
             }).catch(() => {});
         }
