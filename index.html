@@ -484,36 +484,38 @@
         return `https://esa102.github.io/GameArcade/ ${dateString}\n${scoreLine}\nFinal score: ${totalScore}`;
     }
     
-    // DIRECT SHARE - NO EXTRA MODAL, EXACTLY LIKE MAPTAP
     function shareScore() {
-        const message = getShareMessage();
-        
-        if (navigator.share) {
-            navigator.share({
-                title: 'My Turkey Map Challenge Score',
-                text: message,
-                url: 'https://esa102.github.io/GameArcade/'
-            }).catch((error) => {
-                console.log('Error sharing:', error);
-            });
-        } else {
-            navigator.clipboard.writeText(message).then(() => {
-                const msgDiv = document.getElementById('message');
-                const originalText = msgDiv.innerHTML;
-                msgDiv.innerHTML = "📋 Score copied to clipboard!";
-                msgDiv.className = "message message-info";
-                setTimeout(() => {
-                    if (gameActive) {
-                        msgDiv.innerHTML = originalText;
-                    } else {
-                        msgDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
-                    }
-                }, 2000);
-            }).catch(() => {
-                alert("Copy this: " + message);
-            });
-        }
+    const message = getShareMessage();
+    
+    // Check if on mobile (has native share)
+    if (navigator.share) {
+        navigator.share({
+            title: 'My Turkey Map Challenge Score',
+            text: message,
+            url: 'https://esa102.github.io/GameArcade/'
+        }).catch((error) => {
+            console.log('Error sharing:', error);
+        });
+    } else {
+        // DESKTOP: Copy to clipboard only - NO popups, NO windows
+        navigator.clipboard.writeText(message).then(() => {
+            const msgDiv = document.getElementById('message');
+            const originalText = msgDiv.innerHTML;
+            msgDiv.innerHTML = "📋 Score copied to clipboard!";
+            msgDiv.className = "message message-info";
+            setTimeout(() => {
+                if (gameActive) {
+                    msgDiv.innerHTML = originalText;
+                } else {
+                    msgDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${totalScore} / 1000 ⭐`;
+                }
+            }, 2000);
+        }).catch(() => {
+            // Fallback if clipboard fails
+            prompt("Press Ctrl+C to copy:", message);
+        });
     }
+}
     
     function endGame() {
         gameActive = false;
