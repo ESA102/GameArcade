@@ -556,7 +556,7 @@
     
     function shareViaWhatsApp() {
         const message = encodeURIComponent(getShareMessage());
-        window.location.href = `whatsapp://send?text=${message}`;
+        window.open(`whatsapp://send?text=${message}`, '_self');
         closeShareModal();
     }
     
