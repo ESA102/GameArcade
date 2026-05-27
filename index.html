@@ -487,24 +487,48 @@
     function shareScore() {
         const message = getShareMessage();
         
-        // This is what MapTap uses
-        if (navigator.share) {
+        // Strict check for mobile devices
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                         || (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent)); // Catches iPads pretending to be Macs
+    
+        // ONLY use navigator.share if it's explicitly a mobile device AND the API exists
+        if (isMobile && navigator.share) {
             navigator.share({
-                title: 'Turkey Map Challenge',
+                title: 'My Turkey Map Challenge Score',
                 text: message,
                 url: 'https://esa102.github.io/GameArcade/'
-            }).catch(() => {});
+            }).catch(() => {
+                // Fallback to clipboard if native share fails or is cancelled
+                copyToClipboardFallback(message);
+            });
         } else {
-            navigator.clipboard.writeText(message).then(() => {
-                const msgDiv = document.getElementById('message');
-                const originalText = msgDiv.innerHTML;
-                msgDiv.innerHTML = "📋 Score copied to clipboard!";
-                msgDiv.className = "message message-info";
-                setTimeout(() => {
-                    msgDiv.innerHTML = originalText;
-                }, 2000);
-            }).catch(() => {});
+            // Desktop environment - copy to clipboard ONLY
+            copyToClipboardFallback(message);
         }
+    }
+    
+    // Cleaned up clipboard logic into a reusable helper function
+    function copyToClipboardFallback(message) {
+        navigator.clipboard.writeText(message).then(() => {
+            const msgDiv = document.getElementById('message');
+            if (!msgDiv) return;
+            
+            const originalText = msgDiv.innerHTML;
+            msgDiv.innerHTML = "📋 Score copied to clipboard!";
+            msgDiv.className = "message message-info";
+            
+            setTimeout(() => {
+                if (typeof gameActive !== 'undefined' && gameActive) {
+                    msgDiv.innerHTML = originalText;
+                } else {
+                    // Using totalScore safely if it's globally available
+                    const finalScore = typeof totalScore !== 'undefined' ? totalScore : 0;
+                    msgDiv.innerHTML = `🎉 GAME COMPLETE! 🎉<br>⭐ Final Score: ${finalScore} / 1000 ⭐`;
+                }
+            }, 2000);
+        }).catch((err) => {
+            console.error("Failed to copy text: ", err);
+        });
     }
     
     function endGame() {
